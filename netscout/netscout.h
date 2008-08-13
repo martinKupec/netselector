@@ -1,4 +1,5 @@
 
+
 #define _GNU_SOURCE
 
 #ifdef __GNUC__
@@ -13,6 +14,8 @@
 
 #endif
 
+#include <stdint.h>
+
 struct ns {
 	uint8_t *packet;
 	uint64_t time;
@@ -22,7 +25,7 @@ struct knowleadge {
 	uint64_t time;
 	uint16_t type;
 	uint8_t *data;
-}
+};
 
 struct stat_ether {
 	uint8_t addr[6];
