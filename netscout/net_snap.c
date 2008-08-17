@@ -18,7 +18,7 @@ struct cdp {
 	uint8_t version;
 	uint8_t ttl;
 	uint16_t checksum;
-};
+} cdp;
 
 #define CISCO_DISCOVERY_PROTOCOL	0x2000
 

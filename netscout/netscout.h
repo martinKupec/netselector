@@ -16,47 +16,45 @@
 
 #include <stdint.h>
 
-struct ns {
-	uint8_t *packet;
-	uint64_t time;
-};
+extern struct list list_ether, list_ip;
 
-struct knowleadge {
+typedef struct shell {
+	const uint8_t *packet;
 	uint64_t time;
-	uint16_t type;
-	uint8_t *data;
-};
+	void *lower_from;
+	void *lower_to;
+} shell;
 
-struct stat_ether {
+typedef struct stat_ether {
 	uint8_t addr[6];
 
 	uint64_t time;
-};
+} stat_ether;
 
-struct stat_ip {
+typedef struct stat_ip {
 	uint8_t addr[4];
 
 	struct stat_ether *ether;
-};
+} stat_ip;
 
-struct stat_nbname {
+typedef struct stat_nbname {
 	char name[16];
 	
 	struct stat_ip *ip;
-};
+} stat_nbname;
 
-struct stat_cdp {
+typedef struct stat_cdp {
 	uint8_t id[8];
 	uint8_t ip_addr[4];
 
 	struct stat_ether *ether;
-};
+} stat_cdp;
 
-struct stat_stp {
+typedef struct stat_stp {
 	uint8_t root[8];
 	uint8_t bridge[8];
 	uint16_t port;
 
 	struct stat_ether *ether;
-};
+} stat_stp;
 

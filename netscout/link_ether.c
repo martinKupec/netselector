@@ -10,6 +10,7 @@
 
 #include "netscout.h"
 #include "network.h"
+#include "list.h"
 
 struct llc_header {
 	uint8_t dsap;
@@ -17,11 +18,21 @@ struct llc_header {
 	uint8_t control;
 };
 
-void link_hndl_ether(const uint8_t *pkt) {
+void link_hndl_ether(const uint8_t *pkt, shell *sh) {
 	struct ether_header *hdr = (struct ether_header *) pkt;
 	uint16_t etype = ntohs(hdr->ether_type);
 	const uint8_t *ether_payload = pkt + sizeof(struct ether_header);
 	const struct llc_header *llc_hdr = (const struct llc_header *) ether_payload;
+	struct stat_ether *node = list_ether_add_tail();
+	
+	memcpy(node->addr, hdr->ether_dhost, ETHER_ADDR_LEN);
+	node->time = sh->time;
+	sh->lower_to = node;
+
+	node = list_ether_add_tail();
+	memcpy(node->addr, hdr->ether_shost, ETHER_ADDR_LEN);
+	node->time = sh->time;
+	sh->lower_from = node;
 
 	/*printf("To:%02X:%02X:%02X:%02X:%02X:%02X From:%02X:%02X:%02X:%02X:%02X:%02X ", 
 	hdr->ether_dhost[0],
