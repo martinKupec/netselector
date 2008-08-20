@@ -18,36 +18,35 @@ struct llc_header {
 	uint8_t control;
 };
 
+static inline void use_possibly_new_node(struct stat_ether *node, uint8_t *addr, shell *sh) {
+	if(node->time == NULL) {
+		memcpy(node->addr, addr, ETHER_ADDR_LEN);
+		node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16); 
+	} else {
+		if((node->time_count & 0x0F) == 0x0F) {
+			node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->time_count + 16));
+		}
+	}
+	node->time[node->time_count++] = sh->time;
+}
+
 void link_hndl_ether(const uint8_t *pkt, shell *sh) {
 	struct ether_header *hdr = (struct ether_header *) pkt;
 	uint16_t etype = ntohs(hdr->ether_type);
 	const uint8_t *ether_payload = pkt + sizeof(struct ether_header);
 	const struct llc_header *llc_hdr = (const struct llc_header *) ether_payload;
-	struct stat_ether *node = list_ether_add_tail();
+	struct stat_ether *node = list_ether_add_uniq(hdr->ether_dhost);
 	
-	memcpy(node->addr, hdr->ether_dhost, ETHER_ADDR_LEN);
-	node->time = sh->time;
+	use_possibly_new_node(node, hdr->ether_dhost, sh);
 	sh->lower_to = node;
+	sh->lower_to_args = node->time + node->time_count - 1;
 
-	node = list_ether_add_tail();
-	memcpy(node->addr, hdr->ether_shost, ETHER_ADDR_LEN);
-	node->time = sh->time;
+	node = list_ether_add_uniq(hdr->ether_shost);
+
+	use_possibly_new_node(node, hdr->ether_shost, sh);
 	sh->lower_from = node;
+	sh->lower_from_args = node->time + node->time_count - 1;
 
-	/*printf("To:%02X:%02X:%02X:%02X:%02X:%02X From:%02X:%02X:%02X:%02X:%02X:%02X ", 
-	hdr->ether_dhost[0],
-	hdr->ether_dhost[1],
-	hdr->ether_dhost[2],
-	hdr->ether_dhost[3],
-	hdr->ether_dhost[4],
-	hdr->ether_dhost[5],
-	hdr->ether_shost[0],
-	hdr->ether_shost[1],
-	hdr->ether_shost[2],
-	hdr->ether_shost[3],
-	hdr->ether_shost[4],
-	hdr->ether_shost[5]
-	);*/
 	switch(etype) {
 	case ETHERTYPE_IP:
 		net_hndl_ip(ether_payload);

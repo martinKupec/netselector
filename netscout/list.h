@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #define list_ether_add_tail() ((struct stat_ether *) (list_add_tail(&list_ether, sizeof(struct stat_ether))))
+#define list_ether_add_uniq(uniq) ((struct stat_ether *) (list_add_uniq(&list_ether, sizeof(struct stat_ether), 0, uniq, 6) ))
 
 typedef struct node {
 	struct node *prev;	
@@ -19,6 +20,19 @@ static inline void *list_add_tail(list *l, size_t size) {
 	l->head.prev->next = n;
 	l->head.prev = n;
 	return n + 1;
+}
+
+static inline void *list_add_uniq(list *l, size_t size, uint8_t offset, uint8_t *uniq, size_t uniq_size) {
+	node *n;
+
+	for(n = l->head.next; n != &(l->head); n = n->next) {
+		if(!memcmp((uint8_t *)(n + 1) + offset, uniq, uniq_size)) {
+			return n + 1;
+		}
+	}
+	n = list_add_tail(l, size);
+	bzero((uint8_t *)(n), size);
+	return n;
 }
 
 static inline void list_init(list *l) {

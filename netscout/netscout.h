@@ -20,15 +20,18 @@ extern struct list list_ether, list_ip;
 
 typedef struct shell {
 	const uint8_t *packet;
-	uint64_t time;
+	uint32_t time;
 	void *lower_from;
+	void *lower_from_args;
 	void *lower_to;
+	void *lower_to_args;
 } shell;
 
 typedef struct stat_ether {
 	uint8_t addr[6];
 
-	uint64_t time;
+	uint32_t time_count;
+	uint32_t *time;
 } stat_ether;
 
 typedef struct stat_ip {

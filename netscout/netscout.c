@@ -36,7 +36,7 @@ void catcher(u_char *args UNUSED, const struct pcap_pkthdr *hdr, const u_char *p
 	uint64_t now = hdr->ts.tv_sec * 1000000 + hdr->ts.tv_usec;
 
 	shell sh;
-	sh.time = now;
+	sh.time = (uint32_t)(now - start_time);
 	sh.packet = pkt;
 	sh.lower_from = NULL;
 	sh.lower_to = NULL;
@@ -45,9 +45,9 @@ void catcher(u_char *args UNUSED, const struct pcap_pkthdr *hdr, const u_char *p
 
 int main(int argc, char *argv[])
 {
-	char *dev = "eth0";
+	char *dev = "eth2";
 	char errbuf[PCAP_ERRBUF_SIZE];
-	int ret, dlink;
+	int ret, dlink, i;
 	struct timeval time;
 	struct stat_ether *n;
 
@@ -71,10 +71,13 @@ int main(int argc, char *argv[])
 	start_time = time.tv_sec * 1000000 + time.tv_usec;
 	ret = pcap_loop(pcap_hndl, -1, catcher, NULL);
 	printf("pcap_loop returned: %d\n", ret);
-	filter_list(&list_ether, 0, 6);
+	//filter_list(&list_ether, 0, 6);
 	LIST_WALK(n, &list_ether) {
-		printf("%04llu.%03llu Ether %02X:%02X:%02X:%02X:%02X:%02X\n", (n->time - start_time) / 1000000, ((n->time - start_time) / 1000) % 1000,
-			n->addr[0], n->addr[1], n->addr[2], n->addr[3], n->addr[4], n->addr[5]);
+		printf("Ether %02X:%02X:%02X:%02X:%02X:%02X ", n->addr[0], n->addr[1], n->addr[2], n->addr[3], n->addr[4], n->addr[5]);
+		for(i = 0; i < n->time_count; i++) {
+			printf("%03u.%03u ", n->time[i] / 1000000, (n->time[i] / 1000) % 1000);
+		}
+		printf("\n");
 	}
 	return 0;
 }
