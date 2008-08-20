@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <pcap.h>
 
@@ -32,19 +34,18 @@ int set_datalink(int link) {
 
 void catcher(u_char *args UNUSED, const struct pcap_pkthdr *hdr, const u_char *pkt) {
 	uint64_t now = hdr->ts.tv_sec * 1000000 + hdr->ts.tv_usec;
+
 	shell sh;
-	//printf("%04llu.%03llu Len:%03u ", (now - start_time) / 1000000, ((now - start_time) / 1000) % 1000, hdr->len);
 	sh.time = now;
 	sh.packet = pkt;
 	sh.lower_from = NULL;
 	sh.lower_to = NULL;
 	link_hndl((uint8_t *) pkt, &sh);
-	//printf("\n");
 }
 
 int main(int argc, char *argv[])
 {
-	char *dev = "eth2";
+	char *dev = "eth0";
 	char errbuf[PCAP_ERRBUF_SIZE];
 	int ret, dlink;
 	struct timeval time;
@@ -70,6 +71,7 @@ int main(int argc, char *argv[])
 	start_time = time.tv_sec * 1000000 + time.tv_usec;
 	ret = pcap_loop(pcap_hndl, -1, catcher, NULL);
 	printf("pcap_loop returned: %d\n", ret);
+	filter_list(&list_ether, 0, 6);
 	LIST_WALK(n, &list_ether) {
 		printf("%04llu.%03llu Ether %02X:%02X:%02X:%02X:%02X:%02X\n", (n->time - start_time) / 1000000, ((n->time - start_time) / 1000) % 1000,
 			n->addr[0], n->addr[1], n->addr[2], n->addr[3], n->addr[4], n->addr[5]);

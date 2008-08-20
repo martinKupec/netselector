@@ -12,7 +12,7 @@ typedef struct list {
 } list;
 
 static inline void *list_add_tail(list *l, size_t size) {
-	node *n = (node *) malloc(size + sizeof(list *) );
+	node *n = (node *) malloc(size + sizeof(node) );
 	
 	n->prev = l->head.prev;
 	n->next = &(l->head);
@@ -25,6 +25,25 @@ static inline void list_init(list *l) {
 	l->head.prev = &(l->head);
 	l->head.next = &(l->head);
 }
+
+static inline void list_remove(node *n) {
+	n->prev->next = n->next;
+	n->next->prev = n->prev;
+	free(n);
+}
+
+static inline void filter_list(list *l, uint8_t offset, size_t size) {
+	node *a, *b;
+
+	for(a = l->head.next; a != &(l->head); a = a->next) {
+		for(b = a->next; b != &(l->head); b = b->next) {
+			if(!memcmp((uint8_t *)(a + 1) + offset, (uint8_t *)(b + 1) + offset, size)) {
+				list_remove(b);
+			}
+		}
+	}
+}
+
 
 #define LIST_WALK(n, l) for(n = (void *)((l)->head.next + 1); (node *)(n) != (&((l)->head) + 1);\
 							n = (void *) ((((node *) (n)) - 1)->next + 1))
