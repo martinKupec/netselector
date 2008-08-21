@@ -3,6 +3,9 @@
 #define list_ether_add_tail() ((struct stat_ether *) (list_add_tail(&list_ether, sizeof(struct stat_ether))))
 #define list_ether_add_uniq(uniq) ((struct stat_ether *) (list_add_uniq(&list_ether, sizeof(struct stat_ether), 0, uniq, 6) ))
 
+#define list_ip_add_uniq(uniq) ((struct stat_ip *) (list_add_uniq(&list_ip, sizeof(struct stat_ip), 0, (uint8_t *) &uniq, 4) ))
+#define list_nbname_add_uniq(uniq) ((struct stat_nbname *) (list_add_uniq(&list_nbname, sizeof(struct stat_nbname), 0, (uint8_t *)uniq, 16) ))
+
 typedef struct node {
 	struct node *prev;	
 	struct node *next;	
@@ -32,6 +35,7 @@ static inline void *list_add_uniq(list *l, size_t size, uint8_t offset, uint8_t 
 	}
 	n = list_add_tail(l, size);
 	bzero((uint8_t *)(n), size);
+	memcpy(((uint8_t *)(n)) + offset, uniq, uniq_size);
 	return n;
 }
 

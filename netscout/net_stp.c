@@ -3,8 +3,8 @@
 
 #include <netinet/in.h>
 
-#include "network.h"
 #include "netscout.h"
+#include "network.h"
 
 struct stp_pkt {
 	uint16_t protocol;
@@ -28,7 +28,7 @@ struct stp_pkt {
 
 //const uint8_t stp_multicast_adr[] = {0x01, 0x80, 0xC2, 0x00, 0x00, 0x00 };
 				
-void net_hndl_stp(const uint8_t *pkt) {
+void net_hndl_stp(const uint8_t *pkt, shell *sh) {
 	const struct stp_pkt *stp = (const struct stp_pkt *) pkt;
 	switch(stp->protocol) {
 	case PROTOCOL_STP:

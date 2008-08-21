@@ -16,7 +16,7 @@
 
 #include <stdint.h>
 
-extern struct list list_ether, list_ip;
+extern struct list list_ether, list_ip, list_nbname;
 
 typedef struct shell {
 	const uint8_t *packet;
@@ -37,13 +37,17 @@ typedef struct stat_ether {
 typedef struct stat_ip {
 	uint8_t addr[4];
 
-	struct stat_ether *ether;
+	uint32_t ether_count;
+	struct stat_ether **ether;
+	uint32_t **time;
 } stat_ip;
 
 typedef struct stat_nbname {
 	char name[16];
 	
-	struct stat_ip *ip;
+	uint32_t ip_count;
+	struct stat_ip **ip;
+	uint32_t **time;
 } stat_nbname;
 
 typedef struct stat_cdp {

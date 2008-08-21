@@ -14,7 +14,7 @@ static pcap_t *pcap_hndl;
 static void (*link_hndl)(const uint8_t *pkt, shell *sh);
 static uint64_t start_time;
 
-struct list list_ether, list_ip;
+struct list list_ether, list_ip, list_nbname;
 
 void signal_hndl(int sig UNUSED) {
 	pcap_breakloop(pcap_hndl);
@@ -49,9 +49,13 @@ int main(int argc, char *argv[])
 	char errbuf[PCAP_ERRBUF_SIZE];
 	int ret, dlink, i;
 	struct timeval time;
-	struct stat_ether *n;
+	//struct stat_ether *n;
+	//struct stat_ip *lip;
+	struct stat_nbname *lnbn;
 
 	list_init(&list_ether);
+	list_init(&list_ip);
+	list_init(&list_nbname);
 
 	printf("Device: %s\n", dev);
 
@@ -71,11 +75,49 @@ int main(int argc, char *argv[])
 	start_time = time.tv_sec * 1000000 + time.tv_usec;
 	ret = pcap_loop(pcap_hndl, -1, catcher, NULL);
 	printf("pcap_loop returned: %d\n", ret);
-	//filter_list(&list_ether, 0, 6);
-	LIST_WALK(n, &list_ether) {
+	/*LIST_WALK(n, &list_ether) {
 		printf("Ether %02X:%02X:%02X:%02X:%02X:%02X ", n->addr[0], n->addr[1], n->addr[2], n->addr[3], n->addr[4], n->addr[5]);
 		for(i = 0; i < n->time_count; i++) {
 			printf("%03u.%03u ", n->time[i] / 1000000, (n->time[i] / 1000) % 1000);
+		}
+		printf("\n");
+	}*/
+	/*LIST_WALK(lip, &list_ip) {
+		uint8_t last[6];
+
+		printf("IP %d.%d.%d.%d ", lip->addr[0], lip->addr[1], lip->addr[2], lip->addr[3]);
+		bzero(last, 6);
+		for(i = 0; i < lip->ether_count; i++) {
+			if(memcmp(lip->ether[i]->addr, last, 6)) {
+				memcpy(last, lip->ether[i]->addr, 6);
+				printf("%02X:%02X:%02X:%02X:%02X:%02X %03u.%03u ", lip->ether[i]->addr[0],
+						lip->ether[i]->addr[1], lip->ether[i]->addr[2], lip->ether[i]->addr[3],
+						lip->ether[i]->addr[4], lip->ether[i]->addr[5],
+						*(lip->time[i]) / 1000000, (*(lip->time[i]) / 1000) % 1000);
+			} else {
+				printf("%03u.%03u ", *(lip->time[i]) / 1000000, (*(lip->time[i]) / 1000) % 1000);
+			}
+		}
+		printf("\n");
+	}*/
+	LIST_WALK(lnbn, &list_nbname) {
+		char buf[17];
+		uint8_t *last[4];
+
+		memcpy(buf, lnbn->name, 16);
+		buf[16] = '\0';
+		printf("NBName %s ", buf);
+
+		bzero(last, 6);
+		for(i = 0; i < lnbn->ip_count; i++) {
+			if(memcmp(lnbn->ip[i]->addr, last, 4)) {
+				memcpy(last, lnbn->ip[i]->addr, 4);
+				printf("%d.%d.%d.%d %03u.%03u ", lnbn->ip[i]->addr[0],
+						lnbn->ip[i]->addr[1], lnbn->ip[i]->addr[2], lnbn->ip[i]->addr[3],
+						*(lnbn->time[i]) / 1000000, (*(lnbn->time[i]) / 1000) % 1000);
+			} else {
+				printf("%03u.%03u ", *(lnbn->time[i]) / 1000000, (*(lnbn->time[i]) / 1000) % 1000);
+			}
 		}
 		printf("\n");
 	}
