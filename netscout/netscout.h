@@ -16,15 +16,13 @@
 
 #include <stdint.h>
 
-extern struct list list_ether, list_ip, list_nbname;
+extern struct list list_ether, list_ip, list_nbname, list_cdp, list_stp;
 
 typedef struct shell {
 	const uint8_t *packet;
 	uint32_t time;
 	void *lower_from;
-	void *lower_from_args;
 	void *lower_to;
-	void *lower_to_args;
 } shell;
 
 typedef struct stat_ether {
@@ -39,7 +37,7 @@ typedef struct stat_ip {
 
 	uint32_t ether_count;
 	struct stat_ether **ether;
-	uint32_t **time;
+	uint32_t *time;
 } stat_ip;
 
 typedef struct stat_nbname {
@@ -47,21 +45,27 @@ typedef struct stat_nbname {
 	
 	uint32_t ip_count;
 	struct stat_ip **ip;
-	uint32_t **time;
+	uint32_t *time;
 } stat_nbname;
 
 typedef struct stat_cdp {
-	uint8_t id[8];
-	uint8_t ip_addr[4];
+	uint8_t did[16];
+	uint8_t port[10];
+	uint8_t ver[6];
+	uint8_t plat[16];
 
-	struct stat_ether *ether;
+	uint32_t ether_count;
+	struct stat_ether **ether;
+	uint32_t *time;
 } stat_cdp;
 
 typedef struct stat_stp {
-	uint8_t root[8];
 	uint8_t bridge[8];
+	uint8_t root[8];
 	uint16_t port;
 
-	struct stat_ether *ether;
+	uint32_t ether_count;
+	struct stat_ether **ether;
+	uint32_t *time;
 } stat_stp;
 

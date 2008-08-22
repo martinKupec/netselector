@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <netinet/in.h>
 
 #include "netscout.h"
 #include "network.h"
+#include "list.h"
 
 struct stp_pkt {
 	uint16_t protocol;
@@ -30,39 +32,34 @@ struct stp_pkt {
 				
 void net_hndl_stp(const uint8_t *pkt, shell *sh) {
 	const struct stp_pkt *stp = (const struct stp_pkt *) pkt;
-	switch(stp->protocol) {
-	case PROTOCOL_STP:
+	struct stat_stp *node;
+
+	if(ntohs(stp->protocol) == PROTOCOL_STP) {
 		if(stp->version != 0x00) {
 			printf("STP unknown protocol version %02X\n", stp->version);
-			break;
+			return;
 		}
 		if(stp->type != STP_TYPE_CONFIGURATION) {
 			printf("STP non-configuration packet\n");
-			break; 
+			return;
 		}
-		//FIXME use root id to identify network - bridge id for network part & port
-		/*printf("Root: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X Bridge:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X ",
-			stp->root_id[0],
-			stp->root_id[1],
-			stp->root_id[2],
-			stp->root_id[3],
-			stp->root_id[4],
-			stp->root_id[5],
-			stp->root_id[6],
-			stp->root_id[7],
-			stp->bridge_id[0],
-			stp->bridge_id[1],
-			stp->bridge_id[2],
-			stp->bridge_id[3],
-			stp->bridge_id[4],
-			stp->bridge_id[5],
-			stp->bridge_id[6],
-			stp->bridge_id[7]
-			);*/
-		break;
-	default:
+
+		node = list_stp_add_uniq(stp->bridge_id);
+		if(node->ether == NULL) {
+			memcpy(node->root, stp->root_id, 8);
+			node->port = ntohs(stp->port_id);
+			node->ether = (struct stat_ether **) malloc(sizeof(struct stat_ether *) * 16);
+			node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
+		} else {
+			if((node->ether_count & 0x0F) == 0x0F) {
+				node->ether = (struct stat_ether **) realloc(node->ether, sizeof(struct stat_ether *) * (node->ether_count + 16));
+				node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ether_count + 16));
+			}
+		}
+		node->ether[node->ether_count] = sh->lower_from;
+		node->time[node->ether_count++] = sh->time;
+	} else {
 		printf("STP unknown protocol %04X\n", stp->protocol);
-		break;
 	}
 	return;
 }

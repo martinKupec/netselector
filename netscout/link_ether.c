@@ -38,13 +38,11 @@ void link_hndl_ether(const uint8_t *pkt, shell *sh) {
 	
 	use_possibly_new_node(node, sh->time);
 	sh->lower_to = node;
-	sh->lower_to_args = node->time + node->time_count - 1;
 
 	node = list_ether_add_uniq(hdr->ether_shost);
 
 	use_possibly_new_node(node, sh->time);
 	sh->lower_from = node;
-	sh->lower_from_args = node->time + node->time_count - 1;
 
 	switch(etype) {
 	case ETHERTYPE_IP:

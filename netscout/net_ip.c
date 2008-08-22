@@ -35,15 +35,15 @@ void net_nbns(const uint8_t *pkt, shell *sh) {
 	node = list_nbname_add_uniq(buf);
 	if(node->ip == NULL) {
 		node->ip = (struct stat_ip **) malloc(sizeof(struct stat_ip *) * 16);
-		node->time = (uint32_t **) malloc(sizeof(uint32_t *) * 16);
+		node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
 	} else {
 		if((node->ip_count & 0x0F) == 0x0F) {
 			node->ip = (struct stat_ip **) realloc(node->ip, sizeof(struct stat_ip *) * (node->ip_count + 16));
-			node->time = (uint32_t **) realloc(node->time, sizeof(uint32_t *) * (node->ip_count + 16));
+			node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ip_count + 16));
 		}
 	}
 	node->ip[node->ip_count] = sh->lower_from;
-	node->time[node->ip_count++] = sh->lower_from_args;
+	node->time[node->ip_count++] = sh->time;
 	return;
 }
 
@@ -68,14 +68,14 @@ void net_hndl_udp(const uint8_t *pkt, shell *sh) {
 	return;
 }
 
-static inline void use_possibly_new_node(struct stat_ip *node, struct stat_ether *eth, uint32_t *time) {
+static inline void use_possibly_new_node(struct stat_ip *node, struct stat_ether *eth, uint32_t time) {
 	if(node->ether == NULL) {
 		node->ether = (struct stat_ether **) malloc(sizeof(struct stat_ether *) * 16);
-		node->time = (uint32_t **) malloc(sizeof(uint32_t *) * 16);
+		node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
 	} else {
 		if((node->ether_count & 0x0F) == 0x0F) {
 			node->ether = (struct stat_ether **) realloc(node->ether, sizeof(struct stat_ether *) * (node->ether_count + 16));
-			node->time = (uint32_t **) realloc(node->time, sizeof(uint32_t *) * (node->ether_count + 16));
+			node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ether_count + 16));
 		}
 	}
 	node->ether[node->ether_count] = eth;
@@ -86,15 +86,13 @@ void net_hndl_ip(const uint8_t *pkt, shell *sh) {
 	const struct iphdr *hdr = (const struct iphdr *) pkt;
 	struct stat_ip *node = list_ip_add_uniq(hdr->daddr);
 
-	use_possibly_new_node(node, sh->lower_to, sh->lower_to_args);
+	use_possibly_new_node(node, sh->lower_to, sh->time);
 	sh->lower_to = node;
-	sh->lower_to_args = node->time[node->ether_count - 1];
 
 	node = list_ip_add_uniq(hdr->saddr);
 
-	use_possibly_new_node(node, sh->lower_from, sh->lower_from_args);
+	use_possibly_new_node(node, sh->lower_from, sh->time);
 	sh->lower_from = node;
-	sh->lower_from_args = node->time[node->ether_count - 1];
 
 	//printf("From:%03d.%03d.%03d.%03d To:%03d.%03d.%03d.%03d\n", IPQUAD(hdr->saddr), IPQUAD(hdr->daddr));
 	switch(hdr->protocol) {

@@ -5,6 +5,8 @@
 
 #define list_ip_add_uniq(uniq) ((struct stat_ip *) (list_add_uniq(&list_ip, sizeof(struct stat_ip), 0, (uint8_t *) &uniq, 4) ))
 #define list_nbname_add_uniq(uniq) ((struct stat_nbname *) (list_add_uniq(&list_nbname, sizeof(struct stat_nbname), 0, (uint8_t *)uniq, 16) ))
+#define list_cdp_add_uniq(uniq) ((struct stat_cdp *) (list_add_uniq(&list_cdp, sizeof(struct stat_cdp), 0, (uint8_t *) uniq, 16)))
+#define list_stp_add_uniq(uniq) ((struct stat_stp *) (list_add_uniq(&list_stp, sizeof(struct stat_stp), 0, uniq, 8)))
 
 typedef struct node {
 	struct node *prev;	
@@ -25,7 +27,7 @@ static inline void *list_add_tail(list *l, size_t size) {
 	return n + 1;
 }
 
-static inline void *list_add_uniq(list *l, size_t size, uint8_t offset, uint8_t *uniq, size_t uniq_size) {
+static inline void *list_add_uniq(list *l, const size_t size, const uint8_t offset, const uint8_t *uniq, const size_t uniq_size) {
 	node *n;
 
 	for(n = l->head.next; n != &(l->head); n = n->next) {

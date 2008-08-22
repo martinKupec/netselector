@@ -20,15 +20,15 @@ void net_arp_ether(const uint8_t *pkt, shell *sh) {
 
 	if(node->ether == NULL) {
 		node->ether = (struct stat_ether **) malloc(sizeof(struct stat_ether *) * 16);
-		node->time = (uint32_t **) malloc(sizeof(uint32_t *) * 16);
+		node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
 	} else {
 		if((node->ether_count & 0x0F) == 0x0F) {
 			node->ether = (struct stat_ether **) realloc(node->ether, sizeof(struct stat_ether *) * (node->ether_count + 16));
-			node->time = (uint32_t **) realloc(node->time, sizeof(uint32_t *) * (node->ether_count + 16));
+			node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ether_count + 16));
 		}
 	}
 	node->ether[node->ether_count] = sh->lower_from;
-	node->time[node->ether_count++] = sh->lower_from_args;
+	node->time[node->ether_count++] = sh->time;
 	//FIXME maybe test it from and to Ether is the same - should be
 
 	//printf("Prot F:%03d.%03d.%03d.%03d Prot T:%03d.%03d.%03d.%03d ",
