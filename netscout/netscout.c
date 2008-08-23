@@ -9,6 +9,7 @@
 #include "netscout.h"
 #include "link.h"
 #include "list.h"
+#include "wifi.h"
 
 static pcap_t *pcap_hndl;
 static void (*link_hndl)(const uint8_t *pkt, shell *sh);
@@ -77,7 +78,9 @@ int main(int argc, char *argv[])
 	}
 	gettimeofday(&time, NULL);
 	start_time = time.tv_sec * 1000 + (time.tv_usec / 1000);
-	ret = pcap_loop(pcap_hndl, -1, catcher, NULL);
+	printf("Wifi scan %d\n", wifi_scan());
+	ret = pcap_loop(pcap_hndl, -1, catcher, NULL); //Need to edit to support scanning/timeouts
+	//Suggestion - change timeouts to wait time and engage single blocking read, after that we can scan and do it again
 	printf("pcap_loop returned: %d\n", ret);
 	/*LIST_WALK(n, &list_ether) {
 		printf("Ether %02X:%02X:%02X:%02X:%02X:%02X ", n->addr[0], n->addr[1], n->addr[2], n->addr[3], n->addr[4], n->addr[5]);
