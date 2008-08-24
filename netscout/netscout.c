@@ -10,6 +10,7 @@
 #include "link.h"
 #include "list.h"
 #include "wifi.h"
+#include "statistics.h"
 
 static pcap_t *pcap_hndl;
 static void (*link_hndl)(const uint8_t *pkt, shell *sh);
@@ -82,31 +83,8 @@ int main(int argc, char *argv[])
 	ret = pcap_loop(pcap_hndl, -1, catcher, NULL); //Need to edit to support scanning/timeouts
 	//Suggestion - change timeouts to wait time and engage single blocking read, after that we can scan and do it again
 	printf("pcap_loop returned: %d\n", ret);
-	/*LIST_WALK(n, &list_ether) {
-		printf("Ether %02X:%02X:%02X:%02X:%02X:%02X ", n->addr[0], n->addr[1], n->addr[2], n->addr[3], n->addr[4], n->addr[5]);
-		for(i = 0; i < n->time_count; i++) {
-			printf("%03u.%03u ", n->time[i] / 1000000, (n->time[i] / 1000) % 1000);
-		}
-		printf("\n");
-	}*/
-	/*LIST_WALK(lip, &list_ip) {
-		uint8_t last[6];
-
-		printf("IP %d.%d.%d.%d ", lip->addr[0], lip->addr[1], lip->addr[2], lip->addr[3]);
-		bzero(last, 6);
-		for(i = 0; i < lip->ether_count; i++) {
-			if(memcmp(lip->ether[i]->addr, last, 6)) {
-				memcpy(last, lip->ether[i]->addr, 6);
-				printf("%02X:%02X:%02X:%02X:%02X:%02X %03u.%03u ", lip->ether[i]->addr[0],
-						lip->ether[i]->addr[1], lip->ether[i]->addr[2], lip->ether[i]->addr[3],
-						lip->ether[i]->addr[4], lip->ether[i]->addr[5],
-						*(lip->time[i]) / 1000000, (*(lip->time[i]) / 1000) % 1000);
-			} else {
-				printf("%03u.%03u ", *(lip->time[i]) / 1000000, (*(lip->time[i]) / 1000) % 1000);
-			}
-		}
-		printf("\n");
-	}*/
+	stats_ether(&list_ether);
+	stats_ip(&list_ip);
 	/*LIST_WALK(lnbn, &list_nbname) {
 		char buf[17];
 		uint8_t *last[4];

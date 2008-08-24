@@ -17,25 +17,36 @@ typedef struct list {
 	struct node head;
 } list;
 
-static inline void *list_add_tail(list *l, size_t size) {
+static inline void *list_add_after(node *a, size_t size) {
 	node *n = (node *) malloc(size + sizeof(node) );
 	
-	n->prev = l->head.prev;
-	n->next = &(l->head);
-	l->head.prev->next = n;
-	l->head.prev = n;
+	n->prev = a;
+	n->next = a->next;
+	a->next->prev = n;
+	a->next = n;
 	return n + 1;
+}
+
+static inline void *list_add_tail(list *l, size_t size) {
+	return list_add_after(l->head.prev, size);
 }
 
 static inline void *list_add_uniq(list *l, const size_t size, const uint8_t offset, const uint8_t *uniq, const size_t uniq_size) {
 	node *n;
+	int cmp;
 
 	for(n = l->head.next; n != &(l->head); n = n->next) {
-		if(!memcmp((uint8_t *)(n + 1) + offset, uniq, uniq_size)) {
+		cmp = memcmp((uint8_t *)(n + 1) + offset, uniq, uniq_size);
+		if(cmp == 0) {
 			return n + 1;
+		} else if(cmp > 0) {
+			n = list_add_after(n->prev, size);
+			break;
 		}
 	}
-	n = list_add_tail(l, size);
+	if(n == &(l->head)) {
+		n = list_add_tail(l, size);
+	}
 	bzero((uint8_t *)(n), size);
 	memcpy(((uint8_t *)(n)) + offset, uniq, uniq_size);
 	return n;
@@ -65,5 +76,5 @@ static inline void filter_list(list *l, uint8_t offset, size_t size) {
 }
 
 
-#define LIST_WALK(n, l) for(n = (void *)((l)->head.next + 1); (node *)(n) != (&((l)->head) + 1);\
-							n = (void *) ((((node *) (n)) - 1)->next + 1))
+#define LIST_WALK(n, l) for(n = (void *)((l)->head.next + 1); (struct node *)(n) != (&((l)->head) + 1);\
+							n = (void *) ((((struct node *) (n)) - 1)->next + 1))
