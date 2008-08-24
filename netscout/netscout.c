@@ -49,13 +49,8 @@ int main(int argc, char *argv[])
 {
 	char *dev = "eth2";
 	char errbuf[PCAP_ERRBUF_SIZE];
-	int ret, dlink, i;
+	int ret, dlink;
 	struct timeval time;
-	//struct stat_ether *n;
-	//struct stat_ip *lip;
-	//struct stat_nbname *lnbn;
-	struct stat_cdp *lcdp;
-	struct stat_stp *lstp;
 
 	list_init(&list_ether);
 	list_init(&list_ip);
@@ -79,87 +74,16 @@ int main(int argc, char *argv[])
 	}
 	gettimeofday(&time, NULL);
 	start_time = time.tv_sec * 1000 + (time.tv_usec / 1000);
-	printf("Wifi scan %d\n", wifi_scan());
+	//printf("Wifi scan %d\n", wifi_scan());
 	ret = pcap_loop(pcap_hndl, -1, catcher, NULL); //Need to edit to support scanning/timeouts
 	//Suggestion - change timeouts to wait time and engage single blocking read, after that we can scan and do it again
-	printf("pcap_loop returned: %d\n", ret);
-	stats_ether(&list_ether);
-	stats_ip(&list_ip);
-	/*LIST_WALK(lnbn, &list_nbname) {
-		char buf[17];
-		uint8_t *last[4];
-
-		memcpy(buf, lnbn->name, 16);
-		buf[16] = '\0';
-		printf("NBName %s ", buf);
-
-		bzero(last, 4);
-		for(i = 0; i < lnbn->ip_count; i++) {
-			if(memcmp(lnbn->ip[i]->addr, last, 4)) {
-				memcpy(last, lnbn->ip[i]->addr, 4);
-				printf("%d.%d.%d.%d %03u.%03u ", lnbn->ip[i]->addr[0],
-						lnbn->ip[i]->addr[1], lnbn->ip[i]->addr[2], lnbn->ip[i]->addr[3],
-						*(lnbn->time[i]) / 1000000, (*(lnbn->time[i]) / 1000) % 1000);
-			} else {
-				printf("%03u.%03u ", *(lnbn->time[i]) / 1000000, (*(lnbn->time[i]) / 1000) % 1000);
-			}
-		}
-		printf("\n");
-	}*/
-	LIST_WALK(lcdp, &list_cdp) {
-		char buf[17];
-		uint8_t *last[6];
-
-		memcpy(buf, lcdp->did, 16);
-		buf[16] = '\0';
-		printf("DevID %s ", buf);
-		memcpy(buf, lcdp->port, 10);
-		buf[10] = '\0';
-		printf("Port %s ", buf);
-		memcpy(buf, lcdp->ver, 6);
-		buf[6] = '\0';
-		printf("Ver %s ", buf);
-		memcpy(buf, lcdp->plat, 16);
-		buf[16] = '\0';
-		printf("Plat %s ", buf);
-
-		bzero(last, 6);
-		for(i = 0; i < lcdp->ether_count; i++) {
-			if(memcmp(lcdp->ether[i]->addr, last, 6)) {
-				memcpy(last, lcdp->ether[i]->addr, 6);
-				printf("%02X:%02X:%02X:%02X:%02X:%02X %03u.%03u ", lcdp->ether[i]->addr[0],
-						lcdp->ether[i]->addr[1], lcdp->ether[i]->addr[2], lcdp->ether[i]->addr[3],
-						lcdp->ether[i]->addr[4], lcdp->ether[i]->addr[5],
-						lcdp->time[i] / 1000, lcdp->time[i] % 1000);
-			} else {
-				printf("%03u.%03u ", lcdp->time[i] / 1000, lcdp->time[i] % 1000);
-			}
-		}
-		printf("\n");
+	if((ret < 0) && (ret != -2)) {
+		printf("pcap_loop returned: %d\n", ret);
+		return 1;
 	}
+	printf("\nStatistics:\n");
+	statistics_eth_based();
 	printf("\n");
-	LIST_WALK(lstp, &list_stp) {
-		uint8_t *last[6];
-
-		printf("Root: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X Bridge:%02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X Port:%04X ",
-			lstp->root[0], lstp->root[1], lstp->root[2], lstp->root[3], lstp->root[4], lstp->root[5], lstp->root[6], lstp->root[7],
-			lstp->bridge[0], lstp->bridge[1], lstp->bridge[2], lstp->bridge[3], lstp->bridge[4], lstp->bridge[5], lstp->bridge[6],
-			lstp->bridge[7], lstp->port);
-
-		bzero(last, 6);
-		for(i = 0; i < lstp->ether_count; i++) {
-			if(memcmp(lstp->ether[i]->addr, last, 6)) {
-				memcpy(last, lstp->ether[i]->addr, 6);
-				printf("%02X:%02X:%02X:%02X:%02X:%02X %03u.%03u ", lstp->ether[i]->addr[0],
-						lstp->ether[i]->addr[1], lstp->ether[i]->addr[2], lstp->ether[i]->addr[3],
-						lstp->ether[i]->addr[4], lstp->ether[i]->addr[5],
-						lstp->time[i] / 1000, lstp->time[i] % 1000);
-			} else {
-				printf("%03u.%03u ", lstp->time[i] / 1000, lstp->time[i] % 1000);
-			}
-		}
-		printf("\n");
-	}
 	return 0;
 }
 
