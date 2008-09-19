@@ -137,3 +137,16 @@ void statistics_eth_based(void) {
 	}
 }
 
+void statistics_wifi_based(void) {
+	struct stat_wifi *nwifi;
+	unsigned int space, i;
+
+	LIST_WALK(nwifi, &list_wifi) {
+		space = printf("Essid %s", nwifi->essid);
+		stats_time(nwifi->time, nwifi->quality_count, space);
+
+		for(i = 0; i < nwifi->quality_count; i++) {
+			printf("        Quality %u\n", nwifi->quality[i]);
+		}
+	}
+}

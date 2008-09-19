@@ -7,6 +7,7 @@
 #define list_nbname_add_uniq(uniq) ((struct stat_nbname *) (list_add_uniq(&list_nbname, sizeof(struct stat_nbname), 0, (uint8_t *)uniq, 16) ))
 #define list_cdp_add_uniq(uniq) ((struct stat_cdp *) (list_add_uniq(&list_cdp, sizeof(struct stat_cdp), 0, (uint8_t *) uniq, 16)))
 #define list_stp_add_uniq(uniq) ((struct stat_stp *) (list_add_uniq(&list_stp, sizeof(struct stat_stp), 0, uniq, 8)))
+#define list_wifi_add_uniq(uniq) ((struct stat_wifi *) (list_add_uniq(&list_wifi, sizeof(struct stat_wifi), 0, (uint8_t *) uniq, 16)))
 
 typedef struct node {
 	struct node *prev;	

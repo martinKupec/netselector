@@ -17,7 +17,7 @@
 static void (*link_hndl)(const uint8_t *pkt, shell *sh);
 static uint64_t start_time;
 
-struct list list_ether, list_ip, list_nbname, list_cdp, list_stp;
+struct list list_ether, list_ip, list_nbname, list_cdp, list_stp, list_wifi;
 
 static int signal_stop = 1;
 
@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
 	list_init(&list_nbname);
 	list_init(&list_cdp);
 	list_init(&list_stp);
+	list_init(&list_wifi);
 
 	printf("Device: %s\n", dev);
 
@@ -86,7 +87,7 @@ int main(int argc, char *argv[])
 	while(signal_stop) {
 		fd_set sel;
 
-		ret = wifi_scan();
+		ret = wifi_scan(start_time);
 		if(ret < 0) {
 			fprintf(stderr, "Wifi scan error %d %d\n", ret, errno);
 			return 4;
@@ -111,6 +112,7 @@ int main(int argc, char *argv[])
 	}
 	printf("\nStatistics:\n");
 	statistics_eth_based();
+	statistics_wifi_based();
 	printf("\n");
 	return 0;
 }

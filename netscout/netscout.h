@@ -16,7 +16,7 @@
 
 #include <stdint.h>
 
-extern struct list list_ether, list_ip, list_nbname, list_cdp, list_stp;
+extern struct list list_ether, list_ip, list_nbname, list_cdp, list_stp, list_wifi;
 
 typedef struct shell {
 	const uint8_t *packet;
@@ -68,4 +68,12 @@ typedef struct stat_stp {
 	struct stat_ether **ether;
 	uint32_t *time;
 } stat_stp;
+
+typedef struct stat_wifi {
+	uint8_t essid[16];
+
+	uint8_t quality_count;
+	uint8_t *quality;
+	uint32_t *time;
+} stat_wifi;
 
