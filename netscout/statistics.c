@@ -18,8 +18,7 @@ void stats_time(uint32_t *time, unsigned int count, unsigned int space) {
 	avg = time[count - 1] / count;
 	printf("First %03u.%03u ", SHOW_TIME(time[0]));
 	printf("Count %d ", count);
-	printf("Avg %03u.%03u ", SHOW_TIME(avg));
-	putchar('\n');
+	printf("Avg %03u.%03u\n", SHOW_TIME(avg));
 }
 
 static unsigned int search_ether(struct stat_ether **eth, uint32_t count, unsigned int *from, uint8_t *addr) {
@@ -35,10 +34,23 @@ static unsigned int search_ether(struct stat_ether **eth, uint32_t count, unsign
 	return i;
 }
 
+static unsigned int search_ip(struct stat_ip **ip, uint32_t count, unsigned int *from, uint8_t *addr) {
+	unsigned int i, cmp;
+
+	for(i = *from; i < count; i++) {
+		if((cmp = memcmp(ip[i]->addr, addr, 4)) < 0) {
+			*from = i + 1;
+		} else if(cmp > 0) {
+			break;
+		}
+	}
+	return i;
+}
+
 void statistics_eth_based(void) {
 	struct stat_ether *neth;
 	struct stat_ip *nip;
-	struct stat_nnbn *nnbn;
+	struct stat_nbname *nnbn;
 	struct stat_stp *nstp;
 	struct stat_cdp *ncdp;
 	unsigned int distinct, to, from, space;
@@ -59,6 +71,22 @@ void statistics_eth_based(void) {
 			distinct++;
 			space = printf("    IP %d.%d.%d.%d", nip->addr[0], nip->addr[1], nip->addr[2], nip->addr[3]);
 			stats_time(nip->time + from, to - from, space);
+
+			LIST_WALK(nnbn, &list_nbname) {
+				char buf[17];
+				unsigned int nfrom, nto;
+
+				nfrom = 0;
+				nto = search_ip(nnbn->ip, nnbn->ip_count, &nfrom, nip->addr);
+				if(nto == nfrom) {
+					continue;
+				}
+
+				memcpy(buf, nnbn->name, 16);
+				buf[16] = '\0';
+				space = printf("        Ask's NBName %s ", buf);
+				stats_time(nnbn->time + nfrom, nto - nfrom, space);
+			}
 		}
 		if(distinct != 0) {
 			putchar('\n');
@@ -112,41 +140,32 @@ void statistics_eth_based(void) {
 		if(distinct != 0) {
 			putchar('\n');
 		}
-
-		/*LIST_WALK(nnbn, &list_nbname) {
-		  char buf[17];
-		  uint8_t *last[4];
-
-		  memcpy(buf, lnbn->name, 16);
-		  buf[16] = '\0';
-		  printf("Ask's NetBiosName %s ", buf);
-
-		  bzero(last, 4);
-		  for(i = 0; i < lnbn->ip_count; i++) {
-		  if(memcmp(lnbn->ip[i]->addr, last, 4)) {
-		  memcpy(last, lnbn->ip[i]->addr, 4);
-		  printf("%d.%d.%d.%d %03u.%03u ", lnbn->ip[i]->addr[0],
-		  lnbn->ip[i]->addr[1], lnbn->ip[i]->addr[2], lnbn->ip[i]->addr[3],
-		 *(lnbn->time[i]) / 1000000, (*(lnbn->time[i]) / 1000) % 1000);
-		 } else {
-		 printf("%03u.%03u ", *(lnbn->time[i]) / 1000000, (*(lnbn->time[i]) / 1000) % 1000);
-		 }
-		 }
-		 printf("\n");
-		 }*/
 	}
 }
 
 void statistics_wifi_based(void) {
 	struct stat_wifi *nwifi;
 	unsigned int space, i;
+	unsigned int avg;
 
 	LIST_WALK(nwifi, &list_wifi) {
-		space = printf("Essid %s", nwifi->essid);
+		space = printf("Wifi Essid %s", nwifi->essid);
 		stats_time(nwifi->time, nwifi->quality_count, space);
 
+		printf("        Quality ");
+		avg = 0;
 		for(i = 0; i < nwifi->quality_count; i++) {
-			printf("        Quality %u\n", nwifi->quality[i]);
+			avg += nwifi->quality[i];
 		}
+
+		avg /= nwifi->quality_count;
+		printf("First %u ", nwifi->quality[0]);
+		printf("Last %u ", nwifi->quality[nwifi->quality_count - 1]);
+		printf("Avg %u\n", avg);
+		printf("\n");
 	}
+}
+
+void statistics_offer(void) {
+
 }

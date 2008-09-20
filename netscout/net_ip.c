@@ -29,6 +29,7 @@ void sprint_nbname(char *buf, const unsigned char *name) {
 void net_nbns(const uint8_t *pkt, shell *sh) {
 	struct stat_nbname *node;
 	char buf[16];
+	unsigned int here;
 
 	sprint_nbname(buf, pkt + 13);
 
@@ -42,8 +43,26 @@ void net_nbns(const uint8_t *pkt, shell *sh) {
 			node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ip_count + 16));
 		}
 	}
-	node->ip[node->ip_count] = sh->lower_from;
-	node->time[node->ip_count++] = sh->time;
+	if(!node->ip_count) {
+		here = 0;
+	} else if(sh->lower_from == node->ip[node->ip_count - 1]) {
+		here = node->ip_count;
+	} else {
+		for(here = 0; here < node->ip_count; here++) {
+			if(sh->lower_from == node->ip[here]) {
+				break;
+			}
+		}
+		for(; here < node->ip_count; here++) {
+			if(sh->lower_from != node->ip[here]) {
+				bcopy(node->ip + here, node->ip + here + 1, sizeof(struct stat_ip *) * (node->ip_count - here));
+				break;
+			}
+		}
+	}
+	node->ip[here] = sh->lower_from;
+	node->time[here] = sh->time;
+	node->ip_count++;
 	return;
 }
 

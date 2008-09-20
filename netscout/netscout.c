@@ -114,6 +114,8 @@ int main(int argc, char *argv[])
 	statistics_eth_based();
 	statistics_wifi_based();
 	printf("\n");
+	printf("Offers:");
+	statistics_offer();
 	return 0;
 }
 
