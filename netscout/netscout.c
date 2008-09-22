@@ -13,6 +13,7 @@
 #include "list.h"
 #include "wifi.h"
 #include "statistics.h"
+#include "dhcpc.h"
 
 static void (*link_hndl)(const uint8_t *pkt, shell *sh);
 static uint64_t start_time;
@@ -51,7 +52,7 @@ void catcher(u_char *args UNUSED, const struct pcap_pkthdr *hdr, const u_char *p
 int main(int argc, char *argv[])
 {
 	pcap_t *pcap_hndl;
-	char *dev = "eth2";
+	char *dev = "eth0";
 	char errbuf[PCAP_ERRBUF_SIZE];
 	int ret, dlink;
 	struct timeval time;
@@ -86,7 +87,8 @@ int main(int argc, char *argv[])
 	}
 	while(signal_stop) {
 		fd_set sel;
-
+		
+		dhcpc_offers(pcap_hndl, dev);
 		ret = wifi_scan(start_time);
 		if(ret < 0) {
 			fprintf(stderr, "Wifi scan error %d %d\n", ret, errno);
@@ -101,7 +103,7 @@ int main(int argc, char *argv[])
 		FD_ZERO(&sel);
 		FD_SET(*((int *)(pcap_hndl)), &sel);
 		ret = select(*((int *)(pcap_hndl)) + 1, &sel, NULL, NULL, &time);
-		printf("Select ret %d\n", ret);
+		//printf("Select ret %d\n", ret);
 		if(ret > 0) {
 			ret = pcap_dispatch(pcap_hndl, -1, catcher, NULL);
 			if(ret < 0) {
@@ -114,8 +116,8 @@ int main(int argc, char *argv[])
 	statistics_eth_based();
 	statistics_wifi_based();
 	printf("\n");
-	printf("Offers:");
-	statistics_offer();
+	/*printf("Offers:");
+	statistics_offer();*/
 	return 0;
 }
 
