@@ -10,12 +10,14 @@
 #include "netscout.h"
 #include "network.h"
 #include "list.h"
+#include "dhcpc.h"
 
 typedef unsigned char byte;
 #define IPQUAD(x) ((byte*)&(x))[0], ((byte*)&(x))[1], ((byte*)&(x))[2], ((byte*)&(x))[3]
 
 #define UDP_PORT_NBNS	137
-#define UDP_PORT_DHCP	67
+#define UDP_PORT_DHCPS	68
+#define UDP_PORT_DHCPC	67
 #define UDP_PORT_SSDP	1900
 
 void sprint_nbname(char *buf, const unsigned char *name) {
@@ -74,8 +76,11 @@ void net_hndl_udp(const uint8_t *pkt, shell *sh) {
 	case UDP_PORT_NBNS: //WinVista uses lmnr but probably duplicate to NBNS
 		net_nbns(pkt + sizeof(struct udphdr), sh);
 		break;
-	case UDP_PORT_DHCP:
-		printf("DHCP\n");
+	case UDP_PORT_DHCPC:
+		printf("DHCP CLIENT\n");
+		break;
+	case UDP_PORT_DHCPS:
+		dhcpc_packet(pkt, sh);
 		break;
 	case UDP_PORT_SSDP:
 		printf("SSDP\n");

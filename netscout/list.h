@@ -8,6 +8,7 @@
 #define list_cdp_add_uniq(uniq) ((struct stat_cdp *) (list_add_uniq(&list_cdp, sizeof(struct stat_cdp), 0, (uint8_t *) uniq, 16)))
 #define list_stp_add_uniq(uniq) ((struct stat_stp *) (list_add_uniq(&list_stp, sizeof(struct stat_stp), 0, uniq, 8)))
 #define list_wifi_add_uniq(uniq) ((struct stat_wifi *) (list_add_uniq(&list_wifi, sizeof(struct stat_wifi), 0, (uint8_t *) uniq, 16)))
+#define list_dhcp_add_uniq(uniq) ((struct stat_dhcp *) (list_add_uniq(&list_dhcp, sizeof(struct stat_dhcp), 0, (uint8_t *) uniq, 4)))
 
 typedef struct node {
 	struct node *prev;	

@@ -9,10 +9,15 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "netscout.h"
 #include "dhcpc.h"
 
+#define DHCPOFFER	2
+
+#define DHCP_OPTIONS_SIZE 308 /* 312 - cookie */
 struct dhcp_packet {
 	uint8_t op;
 	uint8_t htype;
@@ -29,7 +34,7 @@ struct dhcp_packet {
 	uint8_t sname[64];
 	uint8_t file[128];
 	uint32_t cookie;
-	uint8_t options[308]; /* 312 - cookie */
+	uint8_t options[DHCP_OPTIONS_SIZE]; 
 };
 
 struct whole_packet {
@@ -92,6 +97,7 @@ int dhcp_option_add(uint8_t *opt_field, uint8_t opt_type, uint8_t len, uint8_t *
 void packet_fill_offer(struct dhcp_packet *pkt, uint32_t xid, char *hwaddr) {
 	int opt_ptr;
 	uint8_t type;
+	const char vendor_id[] = "NetScout";
 
 	pkt->op = BOOTREQUEST;
 	pkt->htype = 1;
@@ -109,11 +115,12 @@ void packet_fill_offer(struct dhcp_packet *pkt, uint32_t xid, char *hwaddr) {
 
 	type = DHCP_TYPE_DISCOVER;
 	opt_ptr = dhcp_option_add(pkt->options, DHCP_TYPE_MESSAGE, 1, &type);
+	opt_ptr += dhcp_option_add(pkt->options + opt_ptr, DHCP_TYPE_VENDOR_ID, sizeof(vendor_id),(uint8_t *) vendor_id);
 
 	dhcp_option_add(pkt->options + opt_ptr, 0xFF, 0, NULL);
 }
 
-void packet_finalize(struct whole_packet *pkt, char *hwaddr) {
+void packet_finalize(struct whole_packet *pkt, char *hwaddr, uint16_t ipid) {
 	memset(pkt->eth.ether_dhost, 0xFF, 6);
 	memcpy(pkt->eth.ether_shost, hwaddr, 6);
 	pkt->eth.ether_type = htons(ETHERTYPE_IP);
@@ -132,7 +139,7 @@ void packet_finalize(struct whole_packet *pkt, char *hwaddr) {
 	pkt->ip.version = IPVERSION;
 	pkt->ip.tos = IPTOS_TOS(IPTOS_LOWCOST);
 	pkt->ip.tot_len = htons(sizeof(struct whole_packet) - sizeof(struct ether_header));
-	pkt->ip.id = 0x44; //make random
+	pkt->ip.id = htons(ipid);
 	pkt->ip.frag_off = htons(IP_DF);
 	pkt->ip.ttl = IPDEFTTL;
 	pkt->ip.check = checksum(&pkt->ip, sizeof(struct iphdr));
@@ -140,9 +147,12 @@ void packet_finalize(struct whole_packet *pkt, char *hwaddr) {
 
 void dhcpc_offers(pcap_t *hndl, char *interface) {
 	struct ifreq ifr;
-	int ret;
+	int ret, fd;
+	uint32_t rid;
 
 	if(wpkt.eth.ether_type == 0) {
+		fd = open("/dev/urandom", 0);
+		read(fd, &rid, sizeof(uint32_t));
 
         strcpy(ifr.ifr_name, interface);
 		if(ioctl(*((int *) hndl), SIOCGIFHWADDR, &ifr) < 0) {
@@ -150,15 +160,51 @@ void dhcpc_offers(pcap_t *hndl, char *interface) {
 			return;
 		}
 
-		packet_fill_offer(&wpkt.dhcp, 0x606060, ifr.ifr_hwaddr.sa_data);
-		packet_finalize(&wpkt, ifr.ifr_hwaddr.sa_data);
+		packet_fill_offer(&wpkt.dhcp, rid, ifr.ifr_hwaddr.sa_data);
+		packet_finalize(&wpkt, ifr.ifr_hwaddr.sa_data, (uint16_t) rid);
 		ret = pcap_sendpacket(hndl, (uint8_t *) &wpkt, sizeof(struct whole_packet));
-		printf("RET: %d\n", ret);
+		if(ret) {
+			fprintf(stderr, "Unable to send DHCP Discover\n");
+		}
 	} else {
 
 	}
 }
 
-void dhcpc_packet() {
+void dhcpc_packet(const uint8_t *pkt, shell *sh) {
+	int i;
+	uint8_t mask[4], router[4], dns[2][4], server[4];
+	const uint8_t *options = pkt + sizeof(struct dhcp_packet) - DHCP_OPTIONS_SIZE;
 
+	for(i = 0; options[i] != 255;) {
+		switch(options[i]) {
+		case 0: //Padding
+			i++;
+			continue; //Special size
+		case 1: //Subnet mask
+			memcpy(mask, options + i + 2, 4);
+			break;
+		case 3://Router
+			memcpy(router, options + i + 2, 4);
+			break;
+		case 6:// Domain Name Server
+			memcpy(&dns[0][0], options + i + 2, 4);
+			memcpy(&dns[1][0], options + i + 2 + 4, 4);
+			break;
+		case 17: //Domain Name
+			break;
+		case 53: //DHCP Type
+			if(options[i + 2] == DHCPOFFER) {
+				//FIXME add to list
+			}
+			break;
+		case 54: //DHCP Server Identifier
+			memcpy(server, options + i + 2, 4);
+			break;
+		default:
+			break;
+		}
+		i += options[i + 1] + 2;
+	}
+	printf("DHCP\n"); //read options to get informations
 }

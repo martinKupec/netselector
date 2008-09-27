@@ -18,7 +18,7 @@
 static void (*link_hndl)(const uint8_t *pkt, shell *sh);
 static uint64_t start_time;
 
-struct list list_ether, list_ip, list_nbname, list_cdp, list_stp, list_wifi;
+struct list list_ether, list_ip, list_nbname, list_cdp, list_stp, list_wifi, list_dhcp;
 
 static int signal_stop = 1;
 
