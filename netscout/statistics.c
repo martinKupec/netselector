@@ -53,6 +53,7 @@ void statistics_eth_based(void) {
 	struct stat_nbname *nnbn;
 	struct stat_stp *nstp;
 	struct stat_cdp *ncdp;
+	struct stat_dhcp *ndhcp;
 	unsigned int distinct, to, from, space;
 
 	LIST_WALK(neth, &list_ether) {
@@ -72,6 +73,11 @@ void statistics_eth_based(void) {
 			space = printf("    IP %d.%d.%d.%d", nip->addr[0], nip->addr[1], nip->addr[2], nip->addr[3]);
 			stats_time(nip->time + from, to - from, space);
 
+			LIST_WALK(ndhcp, &list_dhcp) {
+				if(!memcmp(ndhcp->ip->addr, nip->addr, 4)) {
+					printf("	DHCP\n");
+				}
+			}
 			LIST_WALK(nnbn, &list_nbname) {
 				char buf[17];
 				unsigned int nfrom, nto;

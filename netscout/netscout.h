@@ -83,6 +83,6 @@ typedef struct stat_dhcp {
 	uint8_t router_IP[4];
 	uint8_t dnsp[4], dnss[4];
 	uint8_t mask[4];
-	struct stat_ether *ether;
+	struct stat_ip *ip;
 	uint32_t time;
 } stat_dhcp;

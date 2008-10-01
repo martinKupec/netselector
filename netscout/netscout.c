@@ -20,7 +20,7 @@ static uint64_t start_time;
 
 struct list list_ether, list_ip, list_nbname, list_cdp, list_stp, list_wifi, list_dhcp;
 
-static int signal_stop = 1;
+static volatile int signal_stop = 1;
 
 void signal_hndl(int sig UNUSED) {
 	signal_stop = 0;
@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
 	list_init(&list_cdp);
 	list_init(&list_stp);
 	list_init(&list_wifi);
+	list_init(&list_dhcp);
 
 	printf("Device: %s\n", dev);
 

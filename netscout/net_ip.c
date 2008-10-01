@@ -80,7 +80,7 @@ void net_hndl_udp(const uint8_t *pkt, shell *sh) {
 		printf("DHCP CLIENT\n");
 		break;
 	case UDP_PORT_DHCPS:
-		dhcpc_packet(pkt, sh);
+		dhcpc_packet(pkt + sizeof(struct udphdr), sh);
 		break;
 	case UDP_PORT_SSDP:
 		printf("SSDP\n");

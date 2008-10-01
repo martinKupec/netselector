@@ -14,6 +14,7 @@
 
 #include "netscout.h"
 #include "dhcpc.h"
+#include "list.h"
 
 #define DHCPOFFER	2
 
@@ -173,8 +174,16 @@ void dhcpc_offers(pcap_t *hndl, char *interface) {
 
 void dhcpc_packet(const uint8_t *pkt, shell *sh) {
 	int i;
+	int offer = 0;
+	struct stat_dhcp *node;
 	uint8_t mask[4], router[4], dns[2][4], server[4];
-	const uint8_t *options = pkt + sizeof(struct dhcp_packet) - DHCP_OPTIONS_SIZE;
+	struct dhcp_packet *dpkt = (struct dhcp_packet *) pkt;
+	const uint8_t *options = dpkt->options;
+
+	bzero(mask, 4);
+	bzero(router, 4);
+	bzero(server, 4);
+	bzero(dns, 8);
 
 	for(i = 0; options[i] != 255;) {
 		switch(options[i]) {
@@ -195,7 +204,7 @@ void dhcpc_packet(const uint8_t *pkt, shell *sh) {
 			break;
 		case 53: //DHCP Type
 			if(options[i + 2] == DHCPOFFER) {
-				//FIXME add to list
+				offer = 1;
 			}
 			break;
 		case 54: //DHCP Server Identifier
@@ -206,5 +215,13 @@ void dhcpc_packet(const uint8_t *pkt, shell *sh) {
 		}
 		i += options[i + 1] + 2;
 	}
-	printf("DHCP\n"); //read options to get informations
+	if(offer) {
+		node = list_dhcp_add_uniq(server);
+		memcpy(node->router_IP, router, 4);
+		memcpy(node->dnsp, dns[0], 4);
+		memcpy(node->dnss, dns[1], 4);
+		memcpy(node->mask, router, 4);
+		node->ip = sh->lower_from;
+		node->time = sh->time;
+	}
 }

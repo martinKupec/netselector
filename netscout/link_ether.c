@@ -12,6 +12,8 @@
 #include "network.h"
 #include "list.h"
 
+#define ETHERTYPE_EAP           0x888e
+
 struct llc_header {
 	uint8_t dsap;
 	uint8_t ssap;
@@ -56,6 +58,8 @@ void link_hndl_ether(const uint8_t *pkt, shell *sh) {
 		break;
 	case ETHERTYPE_VLAN:
 		printf("Type:VLAN\n");
+	case ETHERTYPE_EAP:
+		net_hndl_eap(ether_payload, sh);
 		break;
 	default:
 		if(etype <= 1500) {
