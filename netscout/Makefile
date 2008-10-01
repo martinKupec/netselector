@@ -3,8 +3,7 @@ all: dirs netscout
 
 C_FILES := $(shell find -iname '*.c' | sort | sed -e 's/^\.\///')
 H_FILES := $(shell find -iname '*.h' | sort | sed -e 's/^\.\///')
-#O_FILES := $(patsubst %.c,.objs/%.o,$(C_FILES))
-O_FILES := netscout.o link_ether.o net_ip.o net_arp.o net_stp.o net_snap.o net_eap.o wifi_scan.o statistics.o dhcpc.o
+O_FILES := $(patsubst %.c,.objs/%.o,$(C_FILES))
 CFLAGS := -MD -ggdb -Wall
 LDFLAGS = -g -lpcap -liw -Wall
 D_FILES := $(shell find -iname '*.d' | sort)

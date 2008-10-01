@@ -7,6 +7,7 @@
 #include "list.h"
 
 #define SHOW_TIME(time) time / 1000, time % 1000
+#define IPQUAD(x) x[0], x[1], x[2], x[3]
 
 void stats_time(uint32_t *time, unsigned int count, unsigned int space) {
 	uint32_t avg;
@@ -75,7 +76,15 @@ void statistics_eth_based(void) {
 
 			LIST_WALK(ndhcp, &list_dhcp) {
 				if(!memcmp(ndhcp->ip->addr, nip->addr, 4)) {
-					printf("	DHCP\n");
+					space = printf("    DHCP Server %d.%d.%d.%d", IPQUAD(ndhcp->server_IP));
+					while(space < 40) {
+						putchar(' ');
+						space++;
+					}
+					printf("At %03u.%03u\n", SHOW_TIME(ndhcp->time));
+					printf("        Router %d.%d.%d.%d\n", IPQUAD(ndhcp->router_IP));
+					printf("        DNS %d.%d.%d.%d %d.%d.%d.%d\n", IPQUAD(ndhcp->dnsp), IPQUAD(ndhcp->dnss));
+					printf("        Mask %d.%d.%d.%d\n", IPQUAD(ndhcp->mask));
 				}
 			}
 			LIST_WALK(nnbn, &list_nbname) {

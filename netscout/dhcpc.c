@@ -51,8 +51,8 @@ static struct whole_packet wpkt;
 uint16_t checksum(void *addr, int count)
 {
 	/* Compute Internet Checksum for "count" bytes
-	 *      *         beginning at location "addr".
-	 *           */
+	 *         beginning at location "addr".
+	 */
 	register int32_t sum = 0;
 	uint16_t *source = (uint16_t *) addr;
 
@@ -65,7 +65,7 @@ uint16_t checksum(void *addr, int count)
 	/*  Add left-over byte, if any */
 	if (count > 0) {
 		/* Make sure that the left-over byte is added correctly both
-		 *          * with little and big endian hosts */
+		 * with little and big endian hosts */
 		uint16_t tmp = 0;
 		*(uint8_t *) (&tmp) = *(uint8_t *) source;
 		sum += tmp;
