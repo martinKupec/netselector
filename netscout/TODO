@@ -1,1 +1,4 @@
 VLAN - probably discard
+mark NTP broadcast
+EAP - just mark packet source
+strip off multiple ether addresses

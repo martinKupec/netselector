@@ -24,6 +24,7 @@ struct cdp {
 } cdp;
 
 #define CISCO_DISCOVERY_PROTOCOL	0x2000
+#define CISCO_WLCCP					0x0000
 
 #define CDP_DEVICE_ID	0x0001
 #define CDP_ADDRESS		0x0002
@@ -111,6 +112,9 @@ void net_hndl_snap(const uint8_t *pkt, shell *sh) {
 	switch(ntohs(hdr->type)) {
 	case CISCO_DISCOVERY_PROTOCOL:
 		net_snap_cdp(payload, sh);
+		break;
+	case CISCO_WLCCP:
+		printf("CISCO Wireless LAN context control protocol\n");
 		break;
 	default:
 		printf("SNAP unknown type %04X\n", hdr->type);
