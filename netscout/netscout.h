@@ -35,16 +35,16 @@ typedef struct stat_ether {
 typedef struct stat_ip {
 	uint8_t addr[4];
 
-	uint32_t ether_count;
-	struct stat_ether **ether;
+	uint32_t time_count;
+	struct stat_ether *ether;
 	uint32_t *time;
 } stat_ip;
 
 typedef struct stat_nbname {
 	char name[16];
 	
-	uint32_t ip_count;
-	struct stat_ip **ip;
+	uint32_t time_count;
+	struct stat_ip *ip;
 	uint32_t *time;
 } stat_nbname;
 
@@ -54,8 +54,8 @@ typedef struct stat_cdp {
 	uint8_t ver[6];
 	uint8_t plat[16];
 
-	uint32_t ether_count;
-	struct stat_ether **ether;
+	uint32_t time_count;
+	struct stat_ether *ether;
 	uint32_t *time;
 } stat_cdp;
 
@@ -64,14 +64,15 @@ typedef struct stat_stp {
 	uint8_t root[8];
 	uint16_t port;
 
-	uint32_t ether_count;
-	struct stat_ether **ether;
+	uint32_t time_count;
+	struct stat_ether *ether;
 	uint32_t *time;
 } stat_stp;
 
 typedef struct stat_wifi {
-	uint8_t essid[16];
+	uint8_t mac[8];
 
+	uint8_t essid[16];
 	uint8_t quality_count;
 	uint8_t *quality;
 	uint32_t *time;
@@ -86,3 +87,19 @@ typedef struct stat_dhcp {
 	struct stat_ip *ip;
 	uint32_t time;
 } stat_dhcp;
+
+typedef struct stat_ipmisc {
+	uint8_t addr[4];
+	uint8_t type;
+
+	uint32_t time_count;
+	uint32_t *time;
+} stat_ipmisc;
+
+enum {
+	IPMISC_EAP,
+	IPMISC_NTP,
+	IPMISC_ICMP,
+	IPMISC_WLCCP,
+	IPMISC_LAST
+};

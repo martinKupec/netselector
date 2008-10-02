@@ -18,7 +18,7 @@
 static void (*link_hndl)(const uint8_t *pkt, shell *sh);
 static uint64_t start_time;
 
-struct list list_ether, list_ip, list_nbname, list_cdp, list_stp, list_wifi, list_dhcp;
+struct list list_ether, list_ip, list_nbname, list_cdp, list_stp, list_wifi, list_dhcp, list_ipmisc;
 
 static volatile int signal_stop = 1;
 
@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
 	list_init(&list_stp);
 	list_init(&list_wifi);
 	list_init(&list_dhcp);
+	list_init(&list_ipmisc);
 
 	printf("Device: %s\n", dev);
 

@@ -20,6 +20,23 @@ typedef unsigned char byte;
 #define UDP_PORT_DHCPC	67
 #define UDP_PORT_SSDP	1900
 
+void ipmisc_add_new(const uint8_t type, shell *sh) {
+	uint8_t key[5];
+	struct stat_ipmisc *node;
+	
+	memcpy(key, sh->lower_from->addr, 4);
+	key[4] = type;
+	node = list_ipmisc_add_uniq(key);
+	if(node->time == NULL) {
+		node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
+	} else {
+		if((node->time_count & 0x0F) == 0x0F) {
+			node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ether_count + 16));
+		}
+	}
+	node->time[node->ether_count++] = time;
+}
+
 void sprint_nbname(char *buf, const unsigned char *name) {
 	int i;
 
@@ -127,6 +144,7 @@ void net_hndl_ip(const uint8_t *pkt, shell *sh) {
 		net_hndl_udp(pkt + (hdr->ihl * 4), sh);
 		break;
 	case IPPROTO_ICMP:
+		ipmisc_add_new(IPMISC_ICMP, sh);
 		printf("ICMP\n");
 		break;
 	default:
