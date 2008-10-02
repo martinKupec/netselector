@@ -55,6 +55,7 @@ void statistics_eth_based(void) {
 	struct stat_stp *nstp;
 	struct stat_cdp *ncdp;
 	struct stat_dhcp *ndhcp;
+	struct stat_ipmisc *nipmisc;
 	unsigned int distinct, to, from, space;
 
 	LIST_WALK(neth, &list_ether) {
@@ -101,6 +102,11 @@ void statistics_eth_based(void) {
 				buf[16] = '\0';
 				space = printf("        Ask's NBName %s ", buf);
 				stats_time(nnbn->time + nfrom, nto - nfrom, space);
+			}
+			LIST_WALK(nipmisc, &list_ipmisc) {
+				if(!memcmp(nipmisc->addr, nip->addr, 4)) {
+					printf("    Protocol %d\n", nipmisc->type);
+				}
 			}
 		}
 		if(distinct != 0) {

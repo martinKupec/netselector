@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <stdint.h>
 #include <pcap.h>
@@ -15,8 +14,6 @@
 #include "netscout.h"
 #include "dhcpc.h"
 #include "list.h"
-
-#define DHCPOFFER	2
 
 #define DHCP_OPTIONS_SIZE 308 /* 312 - cookie */
 struct dhcp_packet {
@@ -45,18 +42,17 @@ struct whole_packet {
 	struct dhcp_packet dhcp;
 } PACKED;
 
-static struct whole_packet wpkt;
+static int sent_offer;
 
 /* Stole from udhcp */
-uint16_t checksum(void *addr, int count)
-{
-	/* Compute Internet Checksum for "count" bytes
-	 *         beginning at location "addr".
-	 */
+/* Compute Internet Checksum for "count" bytes
+ *         beginning at location "addr".
+ */
+static uint16_t checksum(const void *addr, int count) {
 	register int32_t sum = 0;
-	uint16_t *source = (uint16_t *) addr;
+	const uint16_t *source = (const uint16_t *) addr;
 
-	while (count > 1)  {
+	while (count > 1) {
 		/*  This is the inner loop */
 		sum += *source++;
 		count -= 2;
@@ -71,21 +67,23 @@ uint16_t checksum(void *addr, int count)
 		sum += tmp;
 	}
 	/*  Fold 32-bit sum to 16 bits */
-	while (sum >> 16)
+	while (sum >> 16) {
 		sum = (sum & 0xffff) + (sum >> 16);
+	}
 
 	return ~sum;
 }
 
-#define BOOTREQUEST 1
-
-int dhcp_option_add(uint8_t *opt_field, uint8_t opt_type, uint8_t len, uint8_t *data) {
-	int i;
-
+/*
+ * Adds option to option field and return how long it was
+ */
+static int dhcp_option_add(uint8_t *opt_field, uint8_t opt_type, uint8_t len, uint8_t *data) {
 	if(len == 0) {
 		opt_field[0] = opt_type;
 		return 1;
 	} else {
+		int i;
+
 		opt_field[0] = opt_type;
 		opt_field[1] = len;
 		for(i = 0; i < len; i++) {
@@ -94,13 +92,15 @@ int dhcp_option_add(uint8_t *opt_field, uint8_t opt_type, uint8_t len, uint8_t *
 		return len + 2;
 	}
 }
-
-void packet_fill_offer(struct dhcp_packet *pkt, uint32_t xid, char *hwaddr) {
+/*
+ * Fills packets DHCP part
+ */
+static void packet_fill_offer(struct dhcp_packet *pkt, const uint32_t xid, const uint8_t *hwaddr) {
 	int opt_ptr;
 	uint8_t type;
 	const char vendor_id[] = "NetScout";
 
-	pkt->op = BOOTREQUEST;
+	pkt->op = BOOTPREQUEST;
 	pkt->htype = 1;
 	pkt->hlen = 6;
 	pkt->hops = 0;
@@ -112,116 +112,124 @@ void packet_fill_offer(struct dhcp_packet *pkt, uint32_t xid, char *hwaddr) {
 	pkt->siaddr = 0;
 	pkt->giaddr = 0;
 	memcpy(pkt->chaddr, hwaddr, 6);
-	pkt->cookie = htonl(0x63825363);
+	pkt->cookie = htonl(0x63825363); //Magic Cookie
 
-	type = DHCP_TYPE_DISCOVER;
+	type = DHCP_DISCOVER;
 	opt_ptr = dhcp_option_add(pkt->options, DHCP_TYPE_MESSAGE, 1, &type);
 	opt_ptr += dhcp_option_add(pkt->options + opt_ptr, DHCP_TYPE_VENDOR_ID, sizeof(vendor_id),(uint8_t *) vendor_id);
 
-	dhcp_option_add(pkt->options + opt_ptr, 0xFF, 0, NULL);
+	dhcp_option_add(pkt->options + opt_ptr, DHCP_TYPE_END, 0, NULL); //End
 }
 
-void packet_finalize(struct whole_packet *pkt, char *hwaddr, uint16_t ipid) {
+/*
+ * Adds headers to packet
+ */
+static void packet_finalize(struct whole_packet *pkt, const uint8_t *hwaddr, const uint16_t xid) {
 	memset(pkt->eth.ether_dhost, 0xFF, 6);
 	memcpy(pkt->eth.ether_shost, hwaddr, 6);
 	pkt->eth.ether_type = htons(ETHERTYPE_IP);
 
 	pkt->ip.protocol = IPPROTO_UDP;
-	pkt->ip.saddr = 0;
-	pkt->ip.daddr = 0xFFFFFFFF;
+	pkt->ip.saddr = 0; //From noone
+	pkt->ip.daddr = 0xFFFFFFFF; //To everyone
 	pkt->ip.tot_len = htons(sizeof(struct udphdr) + sizeof(struct dhcp_packet)); //cheat - UDP pseudo-header length
-	pkt->udp.source = htons(68); //bootpc
-	pkt->udp.dest = htons(67); //bootps
+	pkt->udp.source = htons(BOOTPC_PORT);
+	pkt->udp.dest = htons(BOOTPS_PORT);
 	pkt->udp.len = pkt->ip.tot_len;
 	pkt->udp.check = checksum(&pkt->ip, sizeof(struct whole_packet) - sizeof(struct ether_header));
 		//small cheat, checksum whole ip header instead of pseudo-one, but with all zeros - except pseudo-one
 
-	pkt->ip.ihl = sizeof(struct iphdr) >> 2;
+	pkt->ip.ihl = sizeof(struct iphdr) >> 2; //Ip header size in quads
 	pkt->ip.version = IPVERSION;
 	pkt->ip.tos = IPTOS_TOS(IPTOS_LOWCOST);
 	pkt->ip.tot_len = htons(sizeof(struct whole_packet) - sizeof(struct ether_header));
-	pkt->ip.id = htons(ipid);
+	pkt->ip.id = htons(xid);
 	pkt->ip.frag_off = htons(IP_DF);
 	pkt->ip.ttl = IPDEFTTL;
 	pkt->ip.check = checksum(&pkt->ip, sizeof(struct iphdr));
 }
 
-void dhcpc_offers(pcap_t *hndl, char *interface) {
-	struct ifreq ifr;
-	int ret, fd;
-	uint32_t rid;
+/*
+ * Sends DHCP discovver, once in 254 calls, stops when received offer
+ */
+void dhcpc_offers(pcap_t *hndl, const char *interface) {
+	if(!sent_offer) {
+		int fd;
+		uint32_t rid;
+		struct ifreq ifr;
+		struct whole_packet wpkt;
 
-	if(wpkt.eth.ether_type == 0) {
 		fd = open("/dev/urandom", 0);
 		read(fd, &rid, sizeof(uint32_t));
+		close(fd);
 
+		//Get HW addr
         strcpy(ifr.ifr_name, interface);
 		if(ioctl(*((int *) hndl), SIOCGIFHWADDR, &ifr) < 0) {
 			fprintf(stderr, "HW address unresolvable error:%s\n", strerror(errno));
 			return;
 		}
 
-		packet_fill_offer(&wpkt.dhcp, rid, ifr.ifr_hwaddr.sa_data);
-		packet_finalize(&wpkt, ifr.ifr_hwaddr.sa_data, (uint16_t) rid);
-		ret = pcap_sendpacket(hndl, (uint8_t *) &wpkt, sizeof(struct whole_packet));
-		if(ret) {
+		packet_fill_offer(&wpkt.dhcp, rid, (uint8_t *) ifr.ifr_hwaddr.sa_data);
+		packet_finalize(&wpkt, (uint8_t *) ifr.ifr_hwaddr.sa_data, (uint16_t) rid);
+		if(pcap_sendpacket(hndl, (uint8_t *) &wpkt, sizeof(struct whole_packet)) ) {
 			fprintf(stderr, "Unable to send DHCP Discover\n");
 		}
+		sent_offer = 254;
 	} else {
-
+		if(sent_offer != 255) {
+			sent_offer--;
+		}
 	}
 }
 
+/*
+ * Handles received packets
+ */
 void dhcpc_packet(const uint8_t *pkt, shell *sh) {
 	int i;
-	int offer = 0;
-	struct stat_dhcp *node;
-	uint8_t mask[4], router[4], dns[2][4], server[4];
-	struct dhcp_packet *dpkt = (struct dhcp_packet *) pkt;
+	struct proto_dhcp *info;
+	uint32_t mask = 0, router = 0, dns[2] = {0, 0}, server = 0;
+	const struct dhcp_packet *dpkt = (const struct dhcp_packet *) pkt;
 	const uint8_t *options = dpkt->options;
-
-	bzero(mask, 4);
-	bzero(router, 4);
-	bzero(server, 4);
-	bzero(dns, 8);
 
 	for(i = 0; options[i] != 255;) {
 		switch(options[i]) {
-		case 0: //Padding
+		case DHCP_TYPE_PAD:
 			i++;
 			continue; //Special size
-		case 1: //Subnet mask
-			memcpy(mask, options + i + 2, 4);
+		case DHCP_TYPE_MASK:
+			mask = *((uint32_t *)(options + i + 2));
 			break;
-		case 3://Router
-			memcpy(router, options + i + 2, 4);
+		case DHCP_TYPE_ROUTER:
+			router = *((uint32_t *)(options + i + 2));
 			break;
-		case 6:// Domain Name Server
-			memcpy(&dns[0][0], options + i + 2, 4);
-			memcpy(&dns[1][0], options + i + 2 + 4, 4);
-			break;
-		case 17: //Domain Name
-			break;
-		case 53: //DHCP Type
-			if(options[i + 2] == DHCPOFFER) {
-				offer = 1;
+		case DHCP_TYPE_DNS:
+			dns[0] = *((uint32_t *)(options + i + 2));
+			if(options[i + 1] > 4) { //Just if it is longer than one IP
+				dns[1] = *((uint32_t *)(options + i + 2 + 4));
 			}
 			break;
-		case 54: //DHCP Server Identifier
-			memcpy(server, options + i + 2, 4);
+		case DHCP_TYPE_DOMAIN_NAME:
+			//FIXME Variable length..try to guess
 			break;
-		default:
+		case DHCP_TYPE_MESSAGE:
+			//Probably Offer, but doesn't really matter
+			sent_offer = 255; //Stop sending discovery
+			break;
+		case DHCP_TYPE_SERVER_ID: //DHCP Server Identifier
+			server = *((uint32_t *)(options + i + 2));
+			break;
+		default: //Not known option
 			break;
 		}
 		i += options[i + 1] + 2;
 	}
-	if(offer) {
-		node = list_dhcp_add_uniq(server);
-		memcpy(node->router_IP, router, 4);
-		memcpy(node->dnsp, dns[0], 4);
-		memcpy(node->dnss, dns[1], 4);
-		memcpy(node->mask, router, 4);
-		node->ip = sh->lower_from;
-		node->time = sh->time;
-	}
+	info = dhcp_getmem();
+	info->server_IP = server;
+	info->router_IP = router;
+	info->dnsp = dns[0];
+	info->dnss = dns[1];
+	info->mask = mask;
+	//FIXME change shell
 }

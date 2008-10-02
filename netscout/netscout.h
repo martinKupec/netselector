@@ -1,4 +1,5 @@
-
+#ifndef __NETSCOUT_NETSCOUT_H__
+#define __NETSCOUT_NETSCOUT_H__
 
 #define _GNU_SOURCE
 
@@ -16,90 +17,74 @@
 
 #include <stdint.h>
 
-extern struct list list_ether, list_ip, list_nbname, list_cdp, list_stp, list_wifi, list_dhcp;
+extern struct list list_ether, list_ip, list_wifi;
+
+struct shell_exchange {
+	void *lower_node;
+	uint32_t higher_type;
+	void *higher_data;
+};
 
 typedef struct shell {
-	const uint8_t *packet;
+	uint8_t const *packet;
 	uint32_t time;
-	void *lower_from;
-	void *lower_to;
+	struct shell_exchange to, from;
 } shell;
 
-typedef struct stat_ether {
-	uint8_t addr[6];
+struct info_field { //Do not reorder
+	uint32_t type;
+	uint32_t time;
+	void *data;
+};
 
-	uint32_t time_count;
-	uint32_t *time;
+typedef struct stat_ether {
+	uint8_t mac[6];
+
+	unsigned count;
+	struct info_field *info;
 } stat_ether;
 
 typedef struct stat_ip {
-	uint8_t addr[4];
+	uint8_t ip[4];
 
-	uint32_t time_count;
 	struct stat_ether *ether;
-	uint32_t *time;
+	unsigned count;
+	struct info_field *info;
 } stat_ip;
 
-typedef struct stat_nbname {
+typedef struct proto_nbname {
 	char name[16];
-	
-	uint32_t time_count;
-	struct stat_ip *ip;
-	uint32_t *time;
-} stat_nbname;
+} proto_nbname;
 
-typedef struct stat_cdp {
+typedef struct proto_cdp {
 	uint8_t did[16];
 	uint8_t port[10];
 	uint8_t ver[6];
 	uint8_t plat[16];
+} proto_cdp;
 
-	uint32_t time_count;
-	struct stat_ether *ether;
-	uint32_t *time;
-} stat_cdp;
-
-typedef struct stat_stp {
+typedef struct proto_stp {
 	uint8_t bridge[8];
 	uint8_t root[8];
 	uint16_t port;
+} proto_stp;
 
-	uint32_t time_count;
-	struct stat_ether *ether;
-	uint32_t *time;
-} stat_stp;
+typedef struct proto_dhcp {
+	uint32_t server_IP;
+	uint32_t router_IP;
+	uint32_t dnsp, dnss;
+	uint32_t mask;
+} proto_dhcp;
+#define dhcp_getmem()	((struct proto_dhcp *) (malloc(sizeof(struct proto_dhcp))))
 
 typedef struct stat_wifi {
-	uint8_t mac[8];
+	uint8_t mac[6];
 
 	uint8_t essid[16];
-	uint8_t quality_count;
+	uint8_t count;
 	uint8_t *quality;
 	uint32_t *time;
 } stat_wifi;
 
-typedef struct stat_dhcp {
-	uint8_t server_IP[4];
+#endif
 
-	uint8_t router_IP[4];
-	uint8_t dnsp[4], dnss[4];
-	uint8_t mask[4];
-	struct stat_ip *ip;
-	uint32_t time;
-} stat_dhcp;
-
-typedef struct stat_ipmisc {
-	uint8_t addr[4];
-	uint8_t type;
-
-	uint32_t time_count;
-	uint32_t *time;
-} stat_ipmisc;
-
-enum {
-	IPMISC_EAP,
-	IPMISC_NTP,
-	IPMISC_ICMP,
-	IPMISC_WLCCP,
-	IPMISC_LAST
-};

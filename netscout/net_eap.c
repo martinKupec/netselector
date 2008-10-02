@@ -22,29 +22,11 @@ struct eap_pkt {
 } PACKED;
 
 void net_hndl_eap(const uint8_t *pkt, shell *sh) {
-	/*const struct eap_pkt *eap = (const struct eap_pkt *) pkt;
-	struct stat_eap *node;
+	const struct eap_pkt *eap = (const struct eap_pkt *) pkt;
 
+	ipmisc_add_new(IPMISC_EAP, sh);
 	if(eap->version > 2) {
 		printf("EAP unknown 802.1X Authentication protocol version %02X\n", eap->version);
-		return;
 	}
-	node = list_eap_add_uniq(eap->bridge_id);
-		if(node->ether == NULL) {
-			memcpy(node->root, stp->root_id, 8);
-			node->port = ntohs(stp->port_id);
-			node->ether = (struct stat_ether **) malloc(sizeof(struct stat_ether *) * 16);
-			node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
-		} else {
-			if((node->ether_count & 0x0F) == 0x0F) {
-				node->ether = (struct stat_ether **) realloc(node->ether, sizeof(struct stat_ether *) * (node->ether_count + 16));
-				node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ether_count + 16));
-			}
-		}
-		node->ether[node->ether_count] = sh->lower_from;
-		node->time[node->ether_count++] = sh->time;
-	} else {
-		printf("STP unknown protocol %04X\n", stp->protocol);
-	}*/
 	return;
 }
