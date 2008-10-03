@@ -14,6 +14,7 @@
 #include "netscout.h"
 #include "dhcpc.h"
 #include "list.h"
+#include "network.h"
 
 #define DHCP_OPTIONS_SIZE 308 /* 312 - cookie */
 struct dhcp_packet {
@@ -188,10 +189,11 @@ void dhcpc_offers(pcap_t *hndl, const char *interface) {
  */
 void dhcpc_packet(const uint8_t *pkt, shell *sh) {
 	int i;
-	struct proto_dhcp *info;
-	uint32_t mask = 0, router = 0, dns[2] = {0, 0}, server = 0;
+	struct proto_dhcp *info = dhcp_getmem();
 	const struct dhcp_packet *dpkt = (const struct dhcp_packet *) pkt;
 	const uint8_t *options = dpkt->options;
+
+	bzero(info, sizeof(struct proto_dhcp));
 
 	for(i = 0; options[i] != 255;) {
 		switch(options[i]) {
@@ -199,15 +201,15 @@ void dhcpc_packet(const uint8_t *pkt, shell *sh) {
 			i++;
 			continue; //Special size
 		case DHCP_TYPE_MASK:
-			mask = *((uint32_t *)(options + i + 2));
+			info->mask = *((uint32_t *)(options + i + 2));
 			break;
 		case DHCP_TYPE_ROUTER:
-			router = *((uint32_t *)(options + i + 2));
+			info->router_IP = *((uint32_t *)(options + i + 2));
 			break;
 		case DHCP_TYPE_DNS:
-			dns[0] = *((uint32_t *)(options + i + 2));
+			info->dnsp = *((uint32_t *)(options + i + 2));
 			if(options[i + 1] > 4) { //Just if it is longer than one IP
-				dns[1] = *((uint32_t *)(options + i + 2 + 4));
+				info->dnss = *((uint32_t *)(options + i + 2 + 4));
 			}
 			break;
 		case DHCP_TYPE_DOMAIN_NAME:
@@ -218,18 +220,15 @@ void dhcpc_packet(const uint8_t *pkt, shell *sh) {
 			sent_offer = 255; //Stop sending discovery
 			break;
 		case DHCP_TYPE_SERVER_ID: //DHCP Server Identifier
-			server = *((uint32_t *)(options + i + 2));
+			info->server_IP = *((uint32_t *)(options + i + 2));
 			break;
 		default: //Not known option
 			break;
 		}
 		i += options[i + 1] + 2;
 	}
-	info = dhcp_getmem();
-	info->server_IP = server;
-	info->router_IP = router;
-	info->dnsp = dns[0];
-	info->dnss = dns[1];
-	info->mask = mask;
-	//FIXME change shell
+	sh->from.higher_type = IP_TYPE_DHCPS;
+	sh->from.higher_data = info;
+	sh->to.higher_type = IP_TYPE_NONE;
+	sh->to.higher_data = NULL;
 }

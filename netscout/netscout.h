@@ -17,7 +17,11 @@
 
 #include <stdint.h>
 
-extern struct list list_ether, list_ip, list_wifi;
+enum {
+	NODE_TYPE_ETH,
+	NODE_TYPE_IP,
+	NODE_TYPE_WIFI
+};
 
 struct shell_exchange {
 	void *lower_node;
@@ -55,6 +59,7 @@ typedef struct stat_ip {
 typedef struct proto_nbname {
 	char name[16];
 } proto_nbname;
+#define nbname_getmem()	((struct proto_nbname *) (malloc(sizeof(struct proto_nbname))))
 
 typedef struct proto_cdp {
 	uint8_t did[16];
@@ -85,6 +90,16 @@ typedef struct stat_wifi {
 	uint8_t *quality;
 	uint32_t *time;
 } stat_wifi;
+
+#define IPQUAD(x) ((unsigned char *)&(x))[0], ((unsigned char *)&(x))[1], ((unsigned char *)&(x))[2], ((unsigned char*)&(x))[3]
+
+#define ether_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_ETH)
+#define ip_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_IP)
+#define wifi_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_WIFI)
+
+extern struct list list_ether, list_ip, list_wifi;
+
+void node_set_info(const struct shell_exchange *ex, const uint32_t time, int node_type);
 
 #endif
 

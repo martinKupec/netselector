@@ -10,147 +10,86 @@
 #include "netscout.h"
 #include "network.h"
 #include "list.h"
+#include "link.h"
 #include "dhcpc.h"
 
-typedef unsigned char byte;
-#define IPQUAD(x) ((byte*)&(x))[0], ((byte*)&(x))[1], ((byte*)&(x))[2], ((byte*)&(x))[3]
-
-#define UDP_PORT_NBNS	137
-#define UDP_PORT_DHCPS	68
-#define UDP_PORT_DHCPC	67
-#define UDP_PORT_SSDP	1900
-
-void ipmisc_add_new(const uint8_t type, shell *sh) {
-	uint8_t key[5];
-	struct stat_ipmisc *node;
-	
-	memcpy(key, sh->lower_from->addr, 4);
-	key[4] = type;
-	node = list_ipmisc_add_uniq(key);
-	if(node->time == NULL) {
-		node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
-	} else {
-		if((node->time_count & 0x0F) == 0x0F) {
-			node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ether_count + 16));
-		}
-	}
-	node->time[node->ether_count++] = time;
-}
-
-void sprint_nbname(char *buf, const unsigned char *name) {
-	int i;
-
-	for(i = 0; i < 16; i++) {
-		buf[i] = ((name[2*i] - 'A') << 4) + (name[2*i + 1] - 'A');
-	}
-}
-
-void net_nbns(const uint8_t *pkt, shell *sh) {
-	struct stat_nbname *node;
-	char buf[16];
-	unsigned int here;
-
-	sprint_nbname(buf, pkt + 13);
-
-	node = list_nbname_add_uniq(buf);
-	if(node->ip == NULL) {
-		node->ip = (struct stat_ip **) malloc(sizeof(struct stat_ip *) * 16);
-		node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
-	} else {
-		if((node->ip_count & 0x0F) == 0x0F) {
-			node->ip = (struct stat_ip **) realloc(node->ip, sizeof(struct stat_ip *) * (node->ip_count + 16));
-			node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ip_count + 16));
-		}
-	}
-	if(!node->ip_count) {
-		here = 0;
-	} else if(sh->lower_from == node->ip[node->ip_count - 1]) {
-		here = node->ip_count;
-	} else {
-		for(here = 0; here < node->ip_count; here++) {
-			if(sh->lower_from == node->ip[here]) {
-				break;
-			}
-		}
-		for(; here < node->ip_count; here++) {
-			if(sh->lower_from != node->ip[here]) {
-				bcopy(node->ip + here, node->ip + here + 1, sizeof(struct stat_ip *) * (node->ip_count - here));
-				break;
-			}
-		}
-	}
-	node->ip[here] = sh->lower_from;
-	node->time[here] = sh->time;
-	node->ip_count++;
-	return;
-}
-
+/*
+ * Dispatcher for UDP packets
+ */
 void net_hndl_udp(const uint8_t *pkt, shell *sh) {
 	const struct udphdr *hdr = (const struct udphdr *) pkt;
-	uint16_t dport = ntohs(hdr->dest);
+	const uint16_t dport = ntohs(hdr->dest);
 
 	switch(dport) {
 	case UDP_PORT_NBNS: //WinVista uses lmnr but probably duplicate to NBNS
-		net_nbns(pkt + sizeof(struct udphdr), sh);
+		net_hndl_nbns(pkt + sizeof(struct udphdr), sh);
 		break;
 	case UDP_PORT_DHCPC:
-		printf("DHCP CLIENT\n");
+		sh->from.higher_type = IP_TYPE_DHCPC;
+		sh->from.higher_data = NULL;
+		sh->to.higher_type = IP_TYPE_NONE;
+		sh->to.higher_data = NULL;
 		break;
 	case UDP_PORT_DHCPS:
 		dhcpc_packet(pkt + sizeof(struct udphdr), sh);
 		break;
 	case UDP_PORT_SSDP:
-		printf("SSDP\n");
+		sh->from.higher_type = IP_TYPE_SSDP;
+		sh->from.higher_data = NULL;
+		sh->to.higher_type = IP_TYPE_NONE;
+		sh->to.higher_data = NULL;
 		break;
 	default:
-		printf("UDP SPort:%d DPort:%d\n", ntohs(hdr->source), ntohs(hdr->dest));
+		sh->from.higher_type = IP_TYPE_UDP;
+		sh->from.higher_data = (void *) ((ntohs(hdr->source) << 16) | (ntohs(hdr->dest)));
+		sh->to.higher_type = IP_TYPE_NONE;
+		sh->to.higher_data = NULL;
 		break;
 	}
-	return;
 }
 
-static inline void use_possibly_new_node(struct stat_ip *node, struct stat_ether *eth, uint32_t time) {
-	if(node->ether == NULL) {
-		node->ether = (struct stat_ether **) malloc(sizeof(struct stat_ether *) * 16);
-		node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
-	} else {
-		if((node->ether_count & 0x0F) == 0x0F) {
-			node->ether = (struct stat_ether **) realloc(node->ether, sizeof(struct stat_ether *) * (node->ether_count + 16));
-			node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ether_count + 16));
-		}
-	}
-	node->ether[node->ether_count] = eth;
-	node->time[node->ether_count++] = time;
-}
-
+/*
+ * Basic handler for IP packets
+ */
 void net_hndl_ip(const uint8_t *pkt, shell *sh) {
 	const struct iphdr *hdr = (const struct iphdr *) pkt;
-	struct stat_ip *node = list_ip_add_uniq(hdr->daddr);
+	void *lower_from = sh->from.lower_node, *lower_to = sh->to.lower_node;
 
-	use_possibly_new_node(node, sh->lower_to, sh->time);
-	sh->lower_to = node;
+	sh->to.lower_node = list_ip_add_uniq(hdr->daddr);
+	sh->from.lower_node = list_ip_add_uniq(hdr->saddr);
 
-	node = list_ip_add_uniq(hdr->saddr);
-
-	use_possibly_new_node(node, sh->lower_from, sh->time);
-	sh->lower_from = node;
-
-	//printf("From:%03d.%03d.%03d.%03d To:%03d.%03d.%03d.%03d\n", IPQUAD(hdr->saddr), IPQUAD(hdr->daddr));
 	switch(hdr->protocol) {
 	case IPPROTO_TCP:
-		//printf("Prot: TCP\n");
+		sh->from.higher_type = IP_TYPE_TCP;
+		sh->from.higher_data = NULL;
+		sh->to.higher_type = IP_TYPE_NONE;
+		sh->to.higher_data = NULL;
 		break;
 	case IPPROTO_UDP:
 		net_hndl_udp(pkt + (hdr->ihl * 4), sh);
 		break;
 	case IPPROTO_ICMP:
-		ipmisc_add_new(IPMISC_ICMP, sh);
-		printf("ICMP\n");
+		sh->from.higher_type = IP_TYPE_ICMP;
+		sh->from.higher_data = NULL;
+		sh->to.higher_type = IP_TYPE_NONE;
+		sh->to.higher_data = NULL;
 		break;
 	default:
-		printf("Prot: %d\n", hdr->protocol);
+		sh->from.higher_type = IP_TYPE_UNKNOWN;
+		sh->from.higher_data = (void *) ((uint32_t) hdr->protocol);
+		sh->to.higher_type = IP_TYPE_NONE;
+		sh->to.higher_data = NULL;
 		break;
 	}
-	return;
+
+	ip_node_set_info(&sh->from, sh->time);
+	ip_node_set_info(&sh->to, sh->time);
+
+	sh->from.lower_node = lower_from;
+	sh->from.higher_type = ETH_TYPE_IP;
+	sh->from.higher_data = sh->from.lower_node;
+	sh->to.lower_node = lower_to;
+	sh->to.higher_type = ETH_TYPE_IP;
+	sh->to.higher_data = sh->to.lower_node;
 }
 

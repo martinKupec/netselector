@@ -20,38 +20,6 @@ struct llc_header {
 } PACKED;
 
 /*
- * Makes room for info and places it in right place
- */
-static void ether_node_set_info(const struct shell_exchange *ex, const uint32_t time) {
-	struct stat_ether *node = ex->lower_node;
-	struct info_field my = {.type = ex->higher_type, .time = time};
-	unsigned here;
-
-	if(node->info == NULL) {
-		node->info = (struct info_field *) malloc(sizeof(struct info_field) * 16); 
-	} else {
-		if((node->count & 0x0F) == 0x0F) { // mod 16 is 0
-			node->info = (struct info_field *) realloc(node->info, sizeof(struct info_field) * (node->count + 16));
-		}
-	}
-	if(!node->count) { //Nothing here yet
-		here = 0;
-	} else if(memcmp(&my, node->info + node->count - 1, sizeof(uint32_t) * 2) > 0) { //Last is before
-		here = node->count;
-	} else { //Need to put inside
-		for(here = 0; here < node->count; here++) {
-			if(memcmp(&my, node->info + node->count - 1, sizeof(uint32_t) * 2) > 0) {
-				break;
-			}
-			bcopy(node->info + here, node->info + here + 1, sizeof(struct info_field) * (node->count - here));
-		}
-	}
-	node->info[here].type = ex->higher_type;
-	node->info[here].data = ex->higher_data;
-	node->info[here].time = time;
-}
-
-/*
  * Basic handler for ethernet link layer
  */
 void link_hndl_ether(const uint8_t *pkt, shell *sh) {
@@ -115,5 +83,4 @@ void link_hndl_ether(const uint8_t *pkt, shell *sh) {
 
 	ether_node_set_info(&sh->to, sh->time);
 	ether_node_set_info(&sh->from, sh->time);
-	return;
 }

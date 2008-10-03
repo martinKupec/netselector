@@ -5,7 +5,6 @@
 
 #define ETHERTYPE_EAP	0x888e
 
-void ethmisc_add_new(const uint8_t type, const shell *sh);
 void link_hndl_ether(const uint8_t *pkt, shell *sh);
 
 enum {
@@ -15,6 +14,7 @@ enum {
 	ETH_TYPE_REVARP,
 	ETH_TYPE_VLAN,
 	ETH_TYPE_EAP,
+	ETH_TYPE_ARP_UNKNOWN,
 	ETH_TYPE_LLC_UNKNOWN,
 	ETH_TYPE_UNKNOWN,
 	ETH_TYPE_LAST

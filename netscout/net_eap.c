@@ -5,7 +5,7 @@
 #include <netinet/in.h>
 
 #include "netscout.h"
-#include "network.h"
+#include "link.h"
 #include "list.h"
 
 struct eap_pkt {
@@ -24,9 +24,8 @@ struct eap_pkt {
 void net_hndl_eap(const uint8_t *pkt, shell *sh) {
 	const struct eap_pkt *eap = (const struct eap_pkt *) pkt;
 
-	ipmisc_add_new(IPMISC_EAP, sh);
-	if(eap->version > 2) {
-		printf("EAP unknown 802.1X Authentication protocol version %02X\n", eap->version);
-	}
-	return;
+	sh->from.higher_type = ETH_TYPE_EAP;
+	sh->from.higher_data = (void *) ((uint32_t)( eap->version));
+	sh->to.higher_type = ETH_TYPE_NONE;
+	sh->to.higher_data = NULL;
 }

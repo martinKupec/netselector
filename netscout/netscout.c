@@ -20,6 +20,53 @@ static uint64_t start_time;
 
 struct list list_ether, list_ip, list_nbname, list_cdp, list_stp, list_wifi, list_dhcp, list_ipmisc, list_ethmisc;
 
+struct pseudo_node {
+	unsigned count;
+	struct info_field *info;
+};
+
+/*
+ * Makes room for info and places it in right place
+ */
+void node_set_info(const struct shell_exchange *ex, const uint32_t time, int node_type) {
+	void *whole_node = ex->lower_node;
+	struct pseudo_node *node;
+	struct info_field my = {.type = ex->higher_type, .time = time};
+	unsigned here;
+
+	switch(node_type) {
+	case NODE_TYPE_ETH:
+		node = (struct pseudo_node *) &(((struct stat_eth *)(whole_node))->count);
+		break;
+	case NODE_TYPE_IP:
+		node = (struct pseudo_node *) &(((struct stat_ip *)(whole_node))->count);
+		break;
+	}
+
+	if(node->info == NULL) {
+		node->info = (struct info_field *) malloc(sizeof(struct info_field) * 16); 
+	} else {
+		if((node->count & 0x0F) == 0x0F) { // mod 16 is 0
+			node->info = (struct info_field *) realloc(node->info, sizeof(struct info_field) * (node->count + 16));
+		}
+	}
+	if(!node->count) { //Nothing here yet
+		here = 0;
+	} else if(memcmp(&my, node->info + node->count - 1, sizeof(uint32_t) * 2) > 0) { //Last is before
+		here = node->count;
+	} else { //Need to put inside
+		for(here = 0; here < node->count; here++) {
+			if(memcmp(&my, node->info + node->count - 1, sizeof(uint32_t) * 2) > 0) {
+				break;
+			}
+			bcopy(node->info + here, node->info + here + 1, sizeof(struct info_field) * (node->count - here));
+		}
+	}
+	node->info[here].type = ex->higher_type;
+	node->info[here].data = ex->higher_data;
+	node->info[here].time = time;
+}
+
 static volatile int signal_stop = 1;
 
 void signal_hndl(int sig UNUSED) {
