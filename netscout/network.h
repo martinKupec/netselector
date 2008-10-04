@@ -16,11 +16,6 @@ enum {
 	IP_TYPE_LAST
 };
 
-#define UDP_PORT_NBNS	137
-#define UDP_PORT_DHCPS	68
-#define UDP_PORT_DHCPC	67
-#define UDP_PORT_SSDP	1900
-
 void net_hndl_arp(const uint8_t *pkt, shell *sh);
 void net_hndl_stp(const uint8_t *pkt, shell *sh);
 void net_hndl_snap(const uint8_t *pkt, shell *sh);

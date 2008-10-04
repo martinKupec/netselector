@@ -11,7 +11,10 @@
 #include "link.h"
 #include "list.h"
 
-void net_arp_ether(const uint8_t *pkt, shell *sh) {
+/*
+ * Handles ARP packets on ethernet
+ */
+static void net_arp_ether(const uint8_t *pkt, shell *sh) {
 	const struct ether_arp *arp = (const struct ether_arp *) pkt;
 	struct stat_ip *node = list_ip_add_uniq(arp->arp_spa);
 	void *lower_node = sh->from.lower_node;

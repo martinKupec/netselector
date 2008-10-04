@@ -13,10 +13,15 @@
 #include "link.h"
 #include "dhcpc.h"
 
+#define UDP_PORT_NBNS	137
+#define UDP_PORT_DHCPS	68
+#define UDP_PORT_DHCPC	67
+#define UDP_PORT_SSDP	1900
+
 /*
  * Dispatcher for UDP packets
  */
-void net_hndl_udp(const uint8_t *pkt, shell *sh) {
+static void net_hndl_udp(const uint8_t *pkt, shell *sh) {
 	const struct udphdr *hdr = (const struct udphdr *) pkt;
 	const uint16_t dport = ntohs(hdr->dest);
 

@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-
 #include <netinet/in.h>
 
 #include "netscout.h"
-#include "network.h"
+#include "link.h"
 #include "list.h"
 
 struct stp_pkt {
@@ -23,43 +22,40 @@ struct stp_pkt {
 	uint16_t delay;
 } PACKED;
 
-#define PROTOCOL_STP	0x0000
+#define STP_PROTOCOL_STP	0x0000
 
 #define STP_TYPE_CONFIGURATION	0
 #define STP_TYPE_TOPO_CHANGE	1
 
-//const uint8_t stp_multicast_adr[] = {0x01, 0x80, 0xC2, 0x00, 0x00, 0x00 };
-				
 void net_hndl_stp(const uint8_t *pkt, shell *sh) {
 	const struct stp_pkt *stp = (const struct stp_pkt *) pkt;
-	struct stat_stp *node;
+	struct proto_stp *info;
 
-	if(ntohs(stp->protocol) == PROTOCOL_STP) {
+	sh->to.higher_type = ETH_TYPE_NONE;
+	sh->to.higher_data = NULL;
+
+	if(ntohs(stp->protocol) == STP_PROTOCOL_STP) {
 		if(stp->version != 0x00) {
-			printf("STP unknown protocol version %02X\n", stp->version);
+			sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
+			sh->from.higher_data = (void *) (STP_UNKNOWN_VERSION | ((uint32_t) stp->version));
 			return;
 		}
 		if(stp->type != STP_TYPE_CONFIGURATION) {
-			printf("STP non-configuration packet\n");
+			sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
+			sh->from.higher_data = (void *) (STP_UNKNOWN_TYPE | ((uint32_t) stp->type));
 			return;
 		}
+		info = stp_getmem();
+		memcpy(info->bridge, stp->bridge_id, 8);
+		memcpy(info->root, stp->root_id, 8);
+		info->port = ntohs(stp->port_id);
 
-		node = list_stp_add_uniq(stp->bridge_id);
-		if(node->ether == NULL) {
-			memcpy(node->root, stp->root_id, 8);
-			node->port = ntohs(stp->port_id);
-			node->ether = (struct stat_ether **) malloc(sizeof(struct stat_ether *) * 16);
-			node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
-		} else {
-			if((node->ether_count & 0x0F) == 0x0F) {
-				node->ether = (struct stat_ether **) realloc(node->ether, sizeof(struct stat_ether *) * (node->ether_count + 16));
-				node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->ether_count + 16));
-			}
-		}
-		node->ether[node->ether_count] = sh->lower_from;
-		node->time[node->ether_count++] = sh->time;
+		sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
+		sh->from.higher_data = (void *) (STP_UNKNOWN_PROTOCOL | ((uint32_t) stp->protocol));
 	} else {
-		printf("STP unknown protocol %04X\n", stp->protocol);
+		sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
+		sh->from.higher_data = (void *) (STP_UNKNOWN_PROTOCOL | ((uint32_t) stp->protocol));
 	}
 	return;
 }
+

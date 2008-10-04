@@ -4,6 +4,7 @@
 #include <sys/time.h>
 
 #include "netscout.h"
+#include "wifi.h"
 #include "list.h"
 
 static int skfd, we_ver;

@@ -35,6 +35,8 @@ typedef struct shell {
 	struct shell_exchange to, from;
 } shell;
 
+typedef void (hndl_t)(const uint8_t *pkt, shell *sh);
+
 struct info_field { //Do not reorder
 	uint32_t type;
 	uint32_t time;
@@ -56,6 +58,15 @@ typedef struct stat_ip {
 	struct info_field *info;
 } stat_ip;
 
+typedef struct stat_wifi {
+	uint8_t mac[6];
+
+	uint8_t essid[16];
+	uint8_t count;
+	uint8_t *quality;
+	uint32_t *time;
+} stat_wifi;
+
 typedef struct proto_nbname {
 	char name[16];
 } proto_nbname;
@@ -67,12 +78,14 @@ typedef struct proto_cdp {
 	uint8_t ver[6];
 	uint8_t plat[16];
 } proto_cdp;
+#define cdp_getmem()	((struct proto_cdp *) (malloc(sizeof(struct proto_cdp))))
 
 typedef struct proto_stp {
 	uint8_t bridge[8];
 	uint8_t root[8];
 	uint16_t port;
 } proto_stp;
+#define stp_getmem()	((struct proto_stp *) (malloc(sizeof(struct proto_stp))))
 
 typedef struct proto_dhcp {
 	uint32_t server_IP;
@@ -81,17 +94,6 @@ typedef struct proto_dhcp {
 	uint32_t mask;
 } proto_dhcp;
 #define dhcp_getmem()	((struct proto_dhcp *) (malloc(sizeof(struct proto_dhcp))))
-
-typedef struct stat_wifi {
-	uint8_t mac[6];
-
-	uint8_t essid[16];
-	uint8_t count;
-	uint8_t *quality;
-	uint32_t *time;
-} stat_wifi;
-
-#define IPQUAD(x) ((unsigned char *)&(x))[0], ((unsigned char *)&(x))[1], ((unsigned char *)&(x))[2], ((unsigned char*)&(x))[3]
 
 #define ether_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_ETH)
 #define ip_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_IP)

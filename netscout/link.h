@@ -3,10 +3,6 @@
 
 #include <stdint.h>
 
-#define ETHERTYPE_EAP	0x888e
-
-void link_hndl_ether(const uint8_t *pkt, shell *sh);
-
 enum {
 	ETH_TYPE_NONE,
 	ETH_TYPE_IP,
@@ -14,11 +10,22 @@ enum {
 	ETH_TYPE_REVARP,
 	ETH_TYPE_VLAN,
 	ETH_TYPE_EAP,
+	ETH_TYPE_CDP,
+	ETH_TYPE_WLCCP,
+	ETH_TYPE_STP_UNKNOWN,
+	ETH_TYPE_CDP_UNKNOWN,
+	ETH_TYPE_SNAP_UNKNOWN,
 	ETH_TYPE_ARP_UNKNOWN,
 	ETH_TYPE_LLC_UNKNOWN,
 	ETH_TYPE_UNKNOWN,
 	ETH_TYPE_LAST
 };
+
+#define STP_UNKNOWN_PROTOCOL	0x8000
+#define STP_UNKNOWN_VERSION		0x4000
+#define STP_UNKNOWN_TYPE		0x2000
+
+void link_hndl_ether(const uint8_t *pkt, shell *sh);
 
 #endif
 

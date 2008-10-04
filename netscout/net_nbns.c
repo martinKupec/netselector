@@ -10,7 +10,7 @@
 #include "list.h"
 #include "dhcpc.h"
 
-void sprint_nbname(char *buf, const unsigned char *name) {
+static void sprint_nbname(char *buf, const unsigned char *name) {
 	int i;
 
 	for(i = 0; i < 16; i++) {

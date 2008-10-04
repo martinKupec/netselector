@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-
 #include <pcap.h>
 #include <sys/select.h>
 
@@ -15,20 +14,20 @@
 #include "statistics.h"
 #include "dhcpc.h"
 
-static void (*link_hndl)(const uint8_t *pkt, shell *sh);
-static uint64_t start_time;
-
-struct list list_ether, list_ip, list_nbname, list_cdp, list_stp, list_wifi, list_dhcp, list_ipmisc, list_ethmisc;
-
 struct pseudo_node {
 	unsigned count;
 	struct info_field *info;
 };
 
+struct list list_ether, list_ip, list_wifi;
+
+static volatile int signal_stop = 1;
+static uint64_t start_time;
+
 /*
  * Makes room for info and places it in right place
  */
-void node_set_info(const struct shell_exchange *ex, const uint32_t time, int node_type) {
+void node_set_info(const struct shell_exchange *ex, const uint32_t time, const int node_type) {
 	void *whole_node = ex->lower_node;
 	struct pseudo_node *node;
 	struct info_field my = {.type = ex->higher_type, .time = time};
@@ -36,7 +35,7 @@ void node_set_info(const struct shell_exchange *ex, const uint32_t time, int nod
 
 	switch(node_type) {
 	case NODE_TYPE_ETH:
-		node = (struct pseudo_node *) &(((struct stat_eth *)(whole_node))->count);
+		node = (struct pseudo_node *) &(((struct stat_ether *)(whole_node))->count);
 		break;
 	case NODE_TYPE_IP:
 		node = (struct pseudo_node *) &(((struct stat_ip *)(whole_node))->count);
@@ -67,37 +66,41 @@ void node_set_info(const struct shell_exchange *ex, const uint32_t time, int nod
 	node->info[here].time = time;
 }
 
-static volatile int signal_stop = 1;
+/*
+ * Sets datalink handler for datalink type
+ */
+static hndl_t *set_datalink(const int link) {
+	switch(link) {
+	case DLT_EN10MB:
+		return link_hndl_ether;
+	}
+	return NULL;
+}
 
-void signal_hndl(int sig UNUSED) {
+/*
+ * Pcap's catcher
+ */
+static void catcher(u_char *args, const struct pcap_pkthdr *hdr, const u_char *pkt) {
+	const hndl_t *hndl = (const hndl_t *) args;
+	const uint64_t now = hdr->ts.tv_sec * 1000 + (hdr->ts.tv_usec / 1000);
+	shell sh;
+
+	sh.time = (uint32_t)(now - start_time);
+	sh.packet = pkt;
+	hndl((uint8_t *) pkt, &sh);
+}
+
+/*
+ * Signal handler for terminating
+ */
+static void signal_hndl(int sig UNUSED) {
 	signal_stop = 0;
 	signal(SIGINT, SIG_DFL);
 }
 
-int set_datalink(int link) {
-	switch(link) {
-	case DLT_EN10MB:
-		link_hndl = link_hndl_ether;
-		break;
-	default:
-		return 1;
-	}
-		return 0;
-}
-
-void catcher(u_char *args UNUSED, const struct pcap_pkthdr *hdr, const u_char *pkt) {
-	uint64_t now = hdr->ts.tv_sec * 1000 + (hdr->ts.tv_usec / 1000);
-
-	shell sh;
-	sh.time = (uint32_t)(now - start_time);
-	sh.packet = pkt;
-	sh.lower_from = NULL;
-	sh.lower_to = NULL;
-	link_hndl((uint8_t *) pkt, &sh);
-}
-
 int main(int argc, char *argv[])
 {
+	hndl_t *datalink_hndl;
 	pcap_t *pcap_hndl;
 	char *dev = "eth0";
 	char errbuf[PCAP_ERRBUF_SIZE];
@@ -106,13 +109,7 @@ int main(int argc, char *argv[])
 
 	list_init(&list_ether);
 	list_init(&list_ip);
-	list_init(&list_nbname);
-	list_init(&list_cdp);
-	list_init(&list_stp);
 	list_init(&list_wifi);
-	list_init(&list_dhcp);
-	list_init(&list_ipmisc);
-	list_init(&list_ethmisc);
 
 	printf("Device: %s\n", dev);
 
@@ -124,7 +121,7 @@ int main(int argc, char *argv[])
 	signal(SIGINT, signal_hndl);
 
 	dlink = pcap_datalink(pcap_hndl);
-	if(set_datalink(dlink)) {
+	if((datalink_hndl = set_datalink(dlink))) {
 		fprintf(stderr, "Don't know datalink type %d\n", dlink);
 		return 2;
 	}
@@ -155,7 +152,7 @@ int main(int argc, char *argv[])
 		ret = select(*((int *)(pcap_hndl)) + 1, &sel, NULL, NULL, &time);
 		//printf("Select ret %d\n", ret);
 		if(ret > 0) {
-			ret = pcap_dispatch(pcap_hndl, -1, catcher, NULL);
+			ret = pcap_dispatch(pcap_hndl, -1, catcher, (u_char *) datalink_hndl);
 			if(ret < 0) {
 				printf("pcap_dispatch returned: %d\n", ret);
 				return 1;

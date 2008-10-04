@@ -19,6 +19,8 @@ struct llc_header {
 	uint8_t control;
 } PACKED;
 
+#define ETHERTYPE_EAP	0x888e
+
 /*
  * Basic handler for ethernet link layer
  */

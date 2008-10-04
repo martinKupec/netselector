@@ -194,7 +194,6 @@ void dhcpc_packet(const uint8_t *pkt, shell *sh) {
 	const uint8_t *options = dpkt->options;
 
 	bzero(info, sizeof(struct proto_dhcp));
-
 	for(i = 0; options[i] != 255;) {
 		switch(options[i]) {
 		case DHCP_TYPE_PAD:

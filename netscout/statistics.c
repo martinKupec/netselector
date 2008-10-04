@@ -4,12 +4,11 @@
 #include <stdlib.h>
 
 #include "netscout.h"
+#include "network.h"
+#include "link.h"
 #include "list.h"
 
-#define SHOW_TIME(time) time / 1000, time % 1000
-#define IPQUAD(x) x[0], x[1], x[2], x[3]
-
-void stats_time(uint32_t *time, unsigned int count, unsigned int space) {
+static void stats_time(uint32_t *time, unsigned int count, unsigned int space) {
 	uint32_t avg;
 
 	while(space < 40) {
@@ -51,20 +50,14 @@ static unsigned int search_ip(struct stat_ip **ip, uint32_t count, unsigned int 
 void statistics_eth_based(void) {
 	struct stat_ether *neth;
 	struct stat_ip *nip;
-	struct stat_nbname *nnbn;
-	struct stat_stp *nstp;
-	struct stat_cdp *ncdp;
-	struct stat_dhcp *ndhcp;
-	struct stat_ipmisc *nipmisc;
-	unsigned int distinct, to, from, space;
+	unsigned int to, from, space;
 
 	LIST_WALK(neth, &list_ether) {
 		space = printf("Ether %02X:%02X:%02X:%02X:%02X:%02X", neth->addr[0], neth->addr[1], neth->addr[2],
 				neth->addr[3], neth->addr[4], neth->addr[5]);
-		stats_time(neth->time, neth->time_count, space);
+		stats_time(neth->info->time, neth->count, space);
 		printf("\n");
 
-		distinct = 0;
 		LIST_WALK(nip, &list_ip) {
 			from = 0;
 			to = search_ether(nip->ether, nip->ether_count, &from, neth->addr);
