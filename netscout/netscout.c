@@ -100,7 +100,7 @@ static void signal_hndl(int sig UNUSED) {
 }
 
 static void usage(void) {
-	fprintf(stderr, "Usage: netscout [<switches>]\n\
+	fprintf(stderr, "Usage: netscout -[i|f] [-w]\n\
 -w <interface>	Enable WiFi scanning on <interface>\n\
 -f <file>	Use dump file instead of live\n\
 -i <interface>	Ethernet listening on <interface> \n\
@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
 			return 2;
 		}
 	} else {
-		printf("wow!\n");
+		usage();
 		return 1;
 	}
 
