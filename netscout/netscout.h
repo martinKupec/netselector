@@ -51,7 +51,7 @@ typedef struct stat_ether {
 } stat_ether;
 
 typedef struct stat_ip {
-	uint8_t ip[4];
+	uint32_t ip;
 
 	struct stat_ether *ether;
 	unsigned count;

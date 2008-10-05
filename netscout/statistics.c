@@ -3,156 +3,161 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "statistics.h"
 #include "netscout.h"
 #include "network.h"
 #include "link.h"
 #include "list.h"
 
-static void stats_time(uint32_t *time, unsigned int count, unsigned int space) {
+static void stats_time(const struct info_field *info, const unsigned count, unsigned space) {
 	uint32_t avg;
 
 	while(space < 40) {
 		putchar(' ');
 		space++;
 	}
-	avg = time[count - 1] / count;
-	printf("First %03u.%03u ", SHOW_TIME(time[0]));
+	avg = info[count - 1].time / count; //FIXME - not true anymore
+	printf("First %03u.%03u ", SHOW_TIME(info[0].time)); //Probably also not true
 	printf("Count %d ", count);
 	printf("Avg %03u.%03u\n", SHOW_TIME(avg));
 }
 
-static unsigned int search_ether(struct stat_ether **eth, uint32_t count, unsigned int *from, uint8_t *addr) {
-	unsigned int i, cmp;
+void statistics_nbns(const struct proto_nbname *nbname) {
+	char buf[17];
 
-	for(i = *from; i < count; i++) {
-		if((cmp = memcmp(eth[i]->addr, addr, 6)) < 0) {
-			*from = i + 1;
-		} else if(cmp > 0) {
-			break;
-		}
-	}
-	return i;
+	memcpy(buf, nbname->name, 16);
+	buf[16] = '\0';
+	printf("        Ask's NBName %s ", buf);
 }
 
-static unsigned int search_ip(struct stat_ip **ip, uint32_t count, unsigned int *from, uint8_t *addr) {
-	unsigned int i, cmp;
+void statistics_dhcps(const struct proto_dhcp *dhcp) {
+		printf("    DHCP Server %d.%d.%d.%d", IPQUAD(dhcp->server_IP));
+		printf("        Router %d.%d.%d.%d\n", IPQUAD(dhcp->router_IP));
+		printf("        DNS %d.%d.%d.%d %d.%d.%d.%d\n", IPQUAD(dhcp->dnsp), IPQUAD(dhcp->dnss));
+		printf("        Mask %d.%d.%d.%d\n", IPQUAD(dhcp->mask));
+}
 
-	for(i = *from; i < count; i++) {
-		if((cmp = memcmp(ip[i]->addr, addr, 4)) < 0) {
-			*from = i + 1;
-		} else if(cmp > 0) {
+void statistics_ip(const struct stat_ip *nip) {
+	unsigned msg, space;
+
+	space = printf("    IP %d.%d.%d.%d", IPQUAD(nip->ip));
+	stats_time(nip->info, nip->count, space);
+
+	for(msg = 0; msg < nip->count; msg++) {
+		switch(nip->info[msg].type) {
+		case IP_TYPE_ICMP:
+			printf("Send's ICMP\n");
+			break;
+		case IP_TYPE_TCP:
+			printf("Uses TCP\n");
+			break;
+		case IP_TYPE_UDP:
+			printf("Uses UDP\n");
+			break;
+		case IP_TYPE_SSDP:
+			printf("Send's SSDP\n");
+			break;
+		case IP_TYPE_NBNS:
+			statistics_nbns(nip->info[msg].data);
+			break;
+		case IP_TYPE_DHCPC:
+			printf("DHCP Client\n");
+			break;
+		case IP_TYPE_DHCPS:
+			statistics_dhcps(nip->info[msg].data);
+			break;
+		case IP_TYPE_UNKNOWN:
+			//FIXME
+			printf("EEEE\n");
 			break;
 		}
 	}
-	return i;
+}
+
+void statistics_stp(const struct proto_stp *stp) {
+	printf("    STP Bridge: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", stp->bridge[0],
+			stp->bridge[1], stp->bridge[2], stp->bridge[3], stp->bridge[4],
+			stp->bridge[5], stp->bridge[6], stp->bridge[7]);
+
+	printf("        Root:   %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n        Port:   %04X\n", stp->root[0],
+			stp->root[1], stp->root[2], stp->root[3], stp->root[4], stp->root[5],
+			stp->root[6], stp->root[7], stp->port);
+}
+
+void statistics_cdp(const struct proto_cdp *cdp) {
+	char buf[17];
+
+	memcpy(buf, cdp->did, 16);
+	buf[16] = '\0';
+	printf("    CDP Device ID %s ", buf);
+	memcpy(buf, cdp->port, 10);
+	buf[10] = '\0';
+	printf("        Port %s\n", buf);
+	memcpy(buf, cdp->ver, 6);
+	buf[6] = '\0';
+	printf("        Version %s\n", buf);
+	memcpy(buf, cdp->plat, 16);
+	buf[16] = '\0';
+	printf("        Platform %s\n", buf);
 }
 
 void statistics_eth_based(void) {
 	struct stat_ether *neth;
-	struct stat_ip *nip;
-	unsigned int to, from, space;
+	unsigned msg, space;
 
 	LIST_WALK(neth, &list_ether) {
-		space = printf("Ether %02X:%02X:%02X:%02X:%02X:%02X", neth->addr[0], neth->addr[1], neth->addr[2],
-				neth->addr[3], neth->addr[4], neth->addr[5]);
-		stats_time(neth->info->time, neth->count, space);
+		space = printf("Ether %02X:%02X:%02X:%02X:%02X:%02X", neth->mac[0], neth->mac[1], neth->mac[2],
+				neth->mac[3], neth->mac[4], neth->mac[5]);
+		stats_time(neth->info, neth->count, space);
 		printf("\n");
 
-		LIST_WALK(nip, &list_ip) {
-			from = 0;
-			to = search_ether(nip->ether, nip->ether_count, &from, neth->addr);
-			if(to == from) {
-				continue;
+		for(msg = 0; msg < neth->count; msg++) {
+			switch(neth->info[msg].type) {
+			case ETH_TYPE_UNKNOWN:
+				//FIXME
+				printf("WWWW\n");
+				break;
+			case ETH_TYPE_SNAP_UNKNOWN:
+				//FIXME
+				printf("WWWW\n");
+				break;
+			case ETH_TYPE_LLC_UNKNOWN:
+				//FIXME
+				printf("WWWW\n");
+				break;
+			case ETH_TYPE_IP:
+				statistics_ip(neth->info[msg].data);
+				break;
+			case ETH_TYPE_STP:
+				statistics_stp(neth->info[msg].data);
+				break;
+			case ETH_TYPE_STP_UNKNOWN:
+				//FIXME
+				printf("WWWW\n");
+				break;
+			case ETH_TYPE_CDP:
+				statistics_cdp(neth->info[msg].data);
+				break;
+			case ETH_TYPE_CDP_UNKNOWN:
+				//FIXME
+				printf("WWWW\n");
+				break;
+			case ETH_TYPE_ARP_UNKNOWN:
+				//FIXME
+				printf("WWWW\n");
+				break;
+			case ETH_TYPE_REVARP:
+				printf("REVARP Send\n");
+			case ETH_TYPE_VLAN:
+				printf("VLAN Detected\n");
+				break;
+			case ETH_TYPE_EAP:
+				printf("Ask's for EAP Authentification\n");
+				break;
+			case ETH_TYPE_WLCCP:
+				printf("Send's WLCCP\n");
+				break;
 			}
-			distinct++;
-			space = printf("    IP %d.%d.%d.%d", nip->addr[0], nip->addr[1], nip->addr[2], nip->addr[3]);
-			stats_time(nip->time + from, to - from, space);
-
-			LIST_WALK(ndhcp, &list_dhcp) {
-				if(!memcmp(ndhcp->ip->addr, nip->addr, 4)) {
-					space = printf("    DHCP Server %d.%d.%d.%d", IPQUAD(ndhcp->server_IP));
-					while(space < 40) {
-						putchar(' ');
-						space++;
-					}
-					printf("At %03u.%03u\n", SHOW_TIME(ndhcp->time));
-					printf("        Router %d.%d.%d.%d\n", IPQUAD(ndhcp->router_IP));
-					printf("        DNS %d.%d.%d.%d %d.%d.%d.%d\n", IPQUAD(ndhcp->dnsp), IPQUAD(ndhcp->dnss));
-					printf("        Mask %d.%d.%d.%d\n", IPQUAD(ndhcp->mask));
-				}
-			}
-			LIST_WALK(nnbn, &list_nbname) {
-				char buf[17];
-				unsigned int nfrom, nto;
-
-				nfrom = 0;
-				nto = search_ip(nnbn->ip, nnbn->ip_count, &nfrom, nip->addr);
-				if(nto == nfrom) {
-					continue;
-				}
-
-				memcpy(buf, nnbn->name, 16);
-				buf[16] = '\0';
-				space = printf("        Ask's NBName %s ", buf);
-				stats_time(nnbn->time + nfrom, nto - nfrom, space);
-			}
-			LIST_WALK(nipmisc, &list_ipmisc) {
-				if(!memcmp(nipmisc->addr, nip->addr, 4)) {
-					printf("    Protocol %d\n", nipmisc->type);
-				}
-			}
-		}
-		if(distinct != 0) {
-			putchar('\n');
-		}
-
-		distinct = 0;
-		LIST_WALK(nstp, &list_stp) {
-			from = 0;
-			to = search_ether(nstp->ether, nstp->ether_count, &from, neth->addr);
-			if(to == from) {
-				continue;
-			}
-			distinct++;
-			space = printf("    STP Bridge: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", nstp->bridge[0],
-					nstp->bridge[1], nstp->bridge[2], nstp->bridge[3], nstp->bridge[4],
-					nstp->bridge[5], nstp->bridge[6], nstp->bridge[7]);
-			stats_time(nstp->time + from, to - from, space);
-
-			printf("        Root:   %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n        Port:   %04X\n", nstp->root[0],
-					nstp->root[1], nstp->root[2], nstp->root[3], nstp->root[4], nstp->root[5],
-					nstp->root[6], nstp->root[7], nstp->port);
-		}
-		if(distinct != 0) {
-			putchar('\n');
-		}
-
-		LIST_WALK(ncdp, &list_cdp) {
-			char buf[17];
-
-			from = 0;
-			to = search_ether(ncdp->ether, ncdp->ether_count, &from, neth->addr);
-			if(to == from) {
-				continue;
-			}
-			distinct++;
-
-			memcpy(buf, ncdp->did, 16);
-			buf[16] = '\0';
-			space = printf("    CDP Device ID %s ", buf);
-			stats_time(ncdp->time + from, to - from, space);
-			memcpy(buf, ncdp->port, 10);
-			buf[10] = '\0';
-			printf("        Port %s\n", buf);
-			memcpy(buf, ncdp->ver, 6);
-			buf[6] = '\0';
-			printf("        Version %s\n", buf);
-			memcpy(buf, ncdp->plat, 16);
-			buf[16] = '\0';
-			printf("        Platform %s\n", buf);
-		}
-		if(distinct != 0) {
-			putchar('\n');
 		}
 	}
 }
@@ -164,17 +169,17 @@ void statistics_wifi_based(void) {
 
 	LIST_WALK(nwifi, &list_wifi) {
 		space = printf("Wifi Essid %s", nwifi->essid);
-		stats_time(nwifi->time, nwifi->quality_count, space);
+		//stats_time(nwifi->time, nwifi->_count, space);
 
 		printf("        Quality ");
 		avg = 0;
-		for(i = 0; i < nwifi->quality_count; i++) {
+		for(i = 0; i < nwifi->count; i++) {
 			avg += nwifi->quality[i];
 		}
 
-		avg /= nwifi->quality_count;
+		avg /= nwifi->count;
 		printf("First %u ", nwifi->quality[0]);
-		printf("Last %u ", nwifi->quality[nwifi->quality_count - 1]);
+		printf("Last %u ", nwifi->quality[nwifi->count - 1]);
 		printf("Avg %u\n", avg);
 		printf("\n");
 	}

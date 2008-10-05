@@ -50,8 +50,8 @@ void net_hndl_stp(const uint8_t *pkt, shell *sh) {
 		memcpy(info->root, stp->root_id, 8);
 		info->port = ntohs(stp->port_id);
 
-		sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
-		sh->from.higher_data = (void *) (STP_UNKNOWN_PROTOCOL | ((uint32_t) stp->protocol));
+		sh->from.higher_type = ETH_TYPE_STP;
+		sh->from.higher_data = info;
 	} else {
 		sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
 		sh->from.higher_data = (void *) (STP_UNKNOWN_PROTOCOL | ((uint32_t) stp->protocol));

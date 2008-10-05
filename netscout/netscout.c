@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 	signal(SIGINT, signal_hndl);
 
 	dlink = pcap_datalink(pcap_hndl);
-	if((datalink_hndl = set_datalink(dlink))) {
+	if(!(datalink_hndl = set_datalink(dlink))) {
 		fprintf(stderr, "Don't know datalink type %d\n", dlink);
 		return 2;
 	}

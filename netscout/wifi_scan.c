@@ -37,13 +37,13 @@ int wifi_scan(uint64_t start_time) {
 			node->quality = (uint8_t *) malloc(sizeof(uint8_t) * 16);
 			node->time = (uint32_t *) malloc(sizeof(uint32_t) * 16);
 		} else {
-			if((node->quality_count & 0x0F) == 0x0F) {
-				node->quality = (uint8_t *) realloc(node->quality, sizeof(uint8_t) * (node->quality_count + 16));
-				node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->quality_count + 16));
+			if((node->count & 0x0F) == 0x0F) {
+				node->quality = (uint8_t *) realloc(node->quality, sizeof(uint8_t) * (node->count + 16));
+				node->time = (uint32_t *) realloc(node->time, sizeof(uint32_t) * (node->count + 16));
 			}
 		}
-		node->quality[node->quality_count] = iter->stats.qual.qual;
-		node->time[node->quality_count++] = now;
+		node->quality[node->count] = iter->stats.qual.qual;
+		node->time[node->count++] = now;
 
 		tmp = iter->next;
 		free(iter);
