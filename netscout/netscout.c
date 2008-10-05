@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <stdint.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -98,27 +99,67 @@ static void signal_hndl(int sig UNUSED) {
 	signal(SIGINT, SIG_DFL);
 }
 
-int main(int argc, char *argv[])
-{
+static void usage(void) {
+	fprintf(stderr, "Usage: netscout [<switches>]\n\
+-w <interface>	Enable WiFi scanning on <interface>\n\
+-f <file>	Use dump file instead of live\n\
+-i <interface>	Ethernet listening on <interface> \n\
+\n");
+}
+
+int main(int argc, char **argv) {
 	hndl_t *datalink_hndl;
 	pcap_t *pcap_hndl;
-	char *dev = "eth0";
+	char *dev = NULL;
+	char *file = NULL;
+	char *wifidev = NULL;
 	char errbuf[PCAP_ERRBUF_SIZE];
-	int ret, dlink;
+	int ret, dlink, opt;
 	struct timeval time;
+	
+	while ((opt = getopt(argc, argv, "w:f:i:")) >= 0) {
+		switch(opt) {
+		case 'w':
+			wifidev = optarg;
+			break;
+		case 'f':
+			file = optarg;
+			break;
+		case 'i':
+			dev = optarg;
+			break;
+		default:
+			usage();
+			return 1;
+		}
+	}
 
 	list_init(&list_ether);
 	list_init(&list_ip);
 	list_init(&list_wifi);
 
-	printf("Device: %s\n", dev);
+	signal(SIGINT, signal_hndl);
 
-	pcap_hndl = pcap_open_live(dev, BUFSIZ, 1, 250, errbuf);
-	if (pcap_hndl == NULL) {
-		fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
+	if(file) {
+		printf("File: %s\n", file);
+		pcap_hndl = pcap_open_offline(file, errbuf);
+
+		if (pcap_hndl == NULL) {
+			fprintf(stderr, "Couldn't open file %s: %s\n", file, errbuf);
+			return 2;
+		}
+	} else if(dev) {
+		printf("Device: %s\n", dev);
+
+		pcap_hndl = pcap_open_live(dev, BUFSIZ, 1, 250, errbuf);
+		if (pcap_hndl == NULL) {
+			fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
+			return 2;
+		}
+	} else {
+		printf("wow!\n");
 		return 1;
 	}
-	signal(SIGINT, signal_hndl);
 
 	dlink = pcap_datalink(pcap_hndl);
 	if(!(datalink_hndl = set_datalink(dlink))) {
@@ -128,15 +169,22 @@ int main(int argc, char *argv[])
 	gettimeofday(&time, NULL);
 	start_time = time.tv_sec * 1000 + (time.tv_usec / 1000);
 	pcap_setnonblock(pcap_hndl, 1, errbuf);
-	if(wifi_scan_init() > 0) {
-		fprintf(stderr, "Wifi scan init error\n");
-		return 3;
+
+	if(wifidev) {
+		if(wifi_scan_init(wifidev) > 0) {
+			fprintf(stderr, "Wifi scan init error\n");
+			return 3;
+		}
 	}
 	while(signal_stop) {
 		fd_set sel;
 		
 		dhcpc_offers(pcap_hndl, dev);
-		ret = wifi_scan(start_time);
+		if(wifidev) {
+			ret = wifi_scan(start_time);
+		} else {
+			ret = 0;
+		}
 		if(ret < 0) {
 			fprintf(stderr, "Wifi scan error %d %d\n", ret, errno);
 			return 4;
@@ -150,7 +198,6 @@ int main(int argc, char *argv[])
 		FD_ZERO(&sel);
 		FD_SET(*((int *)(pcap_hndl)), &sel);
 		ret = select(*((int *)(pcap_hndl)) + 1, &sel, NULL, NULL, &time);
-		//printf("Select ret %d\n", ret);
 		if(ret > 0) {
 			ret = pcap_dispatch(pcap_hndl, -1, catcher, (u_char *) datalink_hndl);
 			if(ret < 0) {
@@ -161,10 +208,10 @@ int main(int argc, char *argv[])
 	}
 	printf("\nStatistics:\n");
 	statistics_eth_based();
-	statistics_wifi_based();
+	if(wifidev) {
+		statistics_wifi_based();
+	}
 	printf("\n");
-	/*printf("Offers:");
-	statistics_offer();*/
 	return 0;
 }
 

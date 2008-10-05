@@ -9,10 +9,12 @@
 
 static int skfd, we_ver;
 static struct wireless_scan_head wsh;
+static char *wifidevice;
 
-int wifi_scan_init(void) {
+int wifi_scan_init(const char *dev) {
 	skfd = iw_sockets_open();
 	we_ver = iw_get_kernel_we_version();
+	wifidevice = (char *) dev;
 	return 0;
 }
 
@@ -23,7 +25,7 @@ int wifi_scan(uint64_t start_time) {
 	uint32_t now;
 	int delay;
 
-	delay = iw_process_scan(skfd, "eth2", we_ver, &wsh);
+	delay = iw_process_scan(skfd, wifidevice, we_ver, &wsh);
 	if(delay != 0) {
 		return delay;
 	}

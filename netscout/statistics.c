@@ -185,6 +185,3 @@ void statistics_wifi_based(void) {
 	}
 }
 
-void statistics_offer(void) {
-
-}
