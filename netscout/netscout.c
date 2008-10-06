@@ -181,36 +181,40 @@ int main(int argc, char **argv) {
 			return 3;
 		}
 	}
-	while(signal_stop) {
-		int ret;
-		fd_set sel;
-		
-		if(dev && dhcp_active) {
-			dhcpc_offers(pcap_hndl, dev);
-		}
-		if(wifidev) {
-			ret = wifi_scan(start_time);
-		} else {
-			ret = 0;
-		}
-		if(ret < 0) {
-			fprintf(stderr, "Wifi scan error %d %d\n", ret, errno);
-			return 4;
-		}
-		if(ret < 200) {
-			ret = 200;
-		}
-		time.tv_sec = 0;
-		time.tv_usec = ret * 1000;
+	if(file) {
+		pcap_dispatch(pcap_hndl, -1, catcher, (u_char *) datalink_hndl);
+	} else {
+		while(signal_stop) {
+			int ret;
+			fd_set sel;
 
-		FD_ZERO(&sel);
-		FD_SET(*((int *)(pcap_hndl)), &sel);
-		ret = select(*((int *)(pcap_hndl)) + 1, &sel, NULL, NULL, &time);
-		if(ret > 0) {
-			ret = pcap_dispatch(pcap_hndl, -1, catcher, (u_char *) datalink_hndl);
+			if(dev && dhcp_active) {
+				dhcpc_offers(pcap_hndl, dev);
+			}
+			if(wifidev) {
+				ret = wifi_scan(start_time);
+			} else {
+				ret = 0;
+			}
 			if(ret < 0) {
-				printf("pcap_dispatch returned: %d\n", ret);
-				return 1;
+				fprintf(stderr, "Wifi scan error %d %d\n", ret, errno);
+				return 4;
+			}
+			if(ret < 200) {
+				ret = 200;
+			}
+			time.tv_sec = 0;
+			time.tv_usec = ret * 1000;
+
+			FD_ZERO(&sel);
+			FD_SET(*((int *)(pcap_hndl)), &sel);
+			ret = select(*((int *)(pcap_hndl)) + 1, &sel, NULL, NULL, &time);
+			if(ret > 0) {
+				ret = pcap_dispatch(pcap_hndl, -1, catcher, (u_char *) datalink_hndl);
+				if(ret < 0) {
+					printf("pcap_dispatch returned: %d\n", ret);
+					return 1;
+				}
 			}
 		}
 	}

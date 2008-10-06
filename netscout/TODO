@@ -1,3 +1,4 @@
 wifi - add MAC address
 do we need to sort by higher_data ? guess from nbname
 do proper nbns packet reading
+handle options in better way
