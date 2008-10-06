@@ -61,7 +61,9 @@ void net_hndl_ip(const uint8_t *pkt, shell *sh) {
 	void *lower_from = sh->from.lower_node, *lower_to = sh->to.lower_node;
 
 	sh->to.lower_node = list_ip_add_uniq(hdr->daddr);
+	((struct stat_ip *)(sh->to.lower_node))->ether = lower_to;
 	sh->from.lower_node = list_ip_add_uniq(hdr->saddr);
+	((struct stat_ip *)(sh->from.lower_node))->ether = lower_from;
 
 	switch(hdr->protocol) {
 	case IPPROTO_TCP:
@@ -90,11 +92,11 @@ void net_hndl_ip(const uint8_t *pkt, shell *sh) {
 	ip_node_set_info(&sh->from, sh->time);
 	ip_node_set_info(&sh->to, sh->time);
 
-	sh->from.lower_node = lower_from;
 	sh->from.higher_type = ETH_TYPE_IP;
 	sh->from.higher_data = sh->from.lower_node;
-	sh->to.lower_node = lower_to;
+	sh->from.lower_node = lower_from;
 	sh->to.higher_type = ETH_TYPE_IP;
 	sh->to.higher_data = sh->to.lower_node;
+	sh->to.lower_node = lower_to;
 }
 

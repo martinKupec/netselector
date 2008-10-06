@@ -16,6 +16,8 @@ static void stats_time(const struct info_field *info, const unsigned count, unsi
 		putchar(' ');
 		space++;
 	}
+	if(!count)
+		return;
 	avg = info[count - 1].time / count; //FIXME - not true anymore
 	printf("First %03u.%03u ", SHOW_TIME(info[0].time)); //Probably also not true
 	printf("Count %d ", count);

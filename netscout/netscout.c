@@ -65,12 +65,13 @@ void node_set_info(const struct shell_exchange *ex, const uint32_t time, const i
 	node->info[here].type = ex->higher_type;
 	node->info[here].data = ex->higher_data;
 	node->info[here].time = time;
+	node->count++;
 }
 
 /*
  * Sets datalink handler for datalink type
  */
-static hndl_t *set_datalink(const int link) {
+static hndl_p set_datalink(const int link) {
 	switch(link) {
 	case DLT_EN10MB:
 		return link_hndl_ether;
@@ -82,13 +83,13 @@ static hndl_t *set_datalink(const int link) {
  * Pcap's catcher
  */
 static void catcher(u_char *args, const struct pcap_pkthdr *hdr, const u_char *pkt) {
-	const hndl_t *hndl = (const hndl_t *) args;
+	const hndl_p hndl = (const hndl_p) args;
 	const uint64_t now = hdr->ts.tv_sec * 1000 + (hdr->ts.tv_usec / 1000);
 	shell sh;
 
 	sh.time = (uint32_t)(now - start_time);
 	sh.packet = pkt;
-	hndl((uint8_t *) pkt, &sh);
+	hndl((const uint8_t *) pkt, &sh);
 }
 
 /*
@@ -104,20 +105,22 @@ static void usage(void) {
 -w <interface>	Enable WiFi scanning on <interface>\n\
 -f <file>	Use dump file instead of live\n\
 -i <interface>	Ethernet listening on <interface> \n\
+-d	Send DHCP Offers\n\
 \n");
 }
 
 int main(int argc, char **argv) {
-	hndl_t *datalink_hndl;
+	hndl_p datalink_hndl;
 	pcap_t *pcap_hndl;
 	char *dev = NULL;
 	char *file = NULL;
 	char *wifidev = NULL;
+	int dhcp_active = 0;
 	char errbuf[PCAP_ERRBUF_SIZE];
-	int ret, dlink, opt;
+	int dlink, opt;
 	struct timeval time;
 	
-	while ((opt = getopt(argc, argv, "w:f:i:")) >= 0) {
+	while ((opt = getopt(argc, argv, "w:f:i:d")) >= 0) {
 		switch(opt) {
 		case 'w':
 			wifidev = optarg;
@@ -128,6 +131,8 @@ int main(int argc, char **argv) {
 		case 'i':
 			dev = optarg;
 			break;
+		case 'd':
+			dhcp_active = 1;
 		default:
 			usage();
 			return 1;
@@ -177,9 +182,12 @@ int main(int argc, char **argv) {
 		}
 	}
 	while(signal_stop) {
+		int ret;
 		fd_set sel;
 		
-		dhcpc_offers(pcap_hndl, dev);
+		if(dev && dhcp_active) {
+			dhcpc_offers(pcap_hndl, dev);
+		}
 		if(wifidev) {
 			ret = wifi_scan(start_time);
 		} else {

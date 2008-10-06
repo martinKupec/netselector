@@ -35,7 +35,7 @@ typedef struct shell {
 	struct shell_exchange to, from;
 } shell;
 
-typedef void (hndl_t)(const uint8_t *pkt, shell *sh);
+typedef void (*hndl_p)(const uint8_t *pkt, shell *sh);
 
 struct info_field { //Do not reorder
 	uint32_t type;
