@@ -6,6 +6,7 @@
 
 #include <net/ethernet.h>
 #include <netinet/in.h>
+#include <linux/if.h>
 #include <linux/llc.h>
 
 #include "netscout.h"
