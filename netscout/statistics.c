@@ -11,7 +11,7 @@
 
 static void stats_time(const struct info_field *info, unsigned space) {
 
-	while(space < 40) {
+	while(space < 60) {
 		putchar(' ');
 		space++;
 	}
@@ -20,74 +20,93 @@ static void stats_time(const struct info_field *info, unsigned space) {
 	printf("Count %d\n", info->count);
 }
 
-void statistics_nbns(const struct proto_nbname *nbname) {
+void statistics_nbns(const struct info_field *info) {
+	const struct proto_nbname *nbname = info->data;
 	char buf[17];
+	unsigned space;
 
 	memcpy(buf, nbname->name, 16);
 	buf[16] = '\0';
-	printf("        Ask's NBName %s ", buf);
+	space = printf("        Ask's NBName %s ", buf);
+	stats_time(info, space);
 }
 
-void statistics_dhcps(const struct proto_dhcp *dhcp) {
-		printf("    DHCP Server %d.%d.%d.%d", IPQUAD(dhcp->server_IP));
-		printf("        Router %d.%d.%d.%d\n", IPQUAD(dhcp->router_IP));
-		printf("        DNS %d.%d.%d.%d %d.%d.%d.%d\n", IPQUAD(dhcp->dnsp), IPQUAD(dhcp->dnss));
-		printf("        Mask %d.%d.%d.%d\n", IPQUAD(dhcp->mask));
+void statistics_dhcps(const struct info_field *info) {
+	const struct proto_dhcp *dhcp = info->data;
+	unsigned space;
+
+	space = printf("        DHCP Server %d.%d.%d.%d", IPQUAD(dhcp->server_IP));
+	stats_time(info, space);
+	printf("            Router %d.%d.%d.%d\n", IPQUAD(dhcp->router_IP));
+	printf("            DNS %d.%d.%d.%d %d.%d.%d.%d\n", IPQUAD(dhcp->dnsp), IPQUAD(dhcp->dnss));
+	printf("            Mask %d.%d.%d.%d\n", IPQUAD(dhcp->mask));
 }
 
-void statistics_ip(const struct stat_ip *nip) {
+void statistics_ip(const struct info_field *info) {
+	const struct stat_ip *nip = info->data;
 	unsigned msg, space;
 
 	space = printf("    IP %d.%d.%d.%d", IPQUAD(nip->ip));
-	stats_time(nip->info, space);
+	stats_time(info, space);
 
 	for(msg = 0; msg < nip->count; msg++) {
+		space = 0;
 		switch(nip->info[msg].type) {
 		case IP_TYPE_ICMP:
-			printf("Send's ICMP\n");
+			space = printf("        Send's ICMP");
 			break;
 		case IP_TYPE_TCP:
-			printf("Uses TCP\n");
+			space = printf("        Send's TCP");
 			break;
 		case IP_TYPE_UDP:
-			printf("Uses UDP\n");
+			space = printf("        Send's UDP port from %d port to %d",
+					((uint32_t)(nip->info[msg].data)) >> 16, ((uint32_t)(nip->info[msg].data)) & 0xFFFF);
 			break;
 		case IP_TYPE_SSDP:
-			printf("Send's SSDP\n");
+			space = printf("        Send's SSDP");
 			break;
 		case IP_TYPE_NBNS:
-			statistics_nbns(nip->info[msg].data);
+			statistics_nbns(nip->info + msg);
 			break;
 		case IP_TYPE_DHCPC:
-			printf("DHCP Client\n");
+			space = printf("        DHCP Client");
 			break;
 		case IP_TYPE_DHCPS:
-			statistics_dhcps(nip->info[msg].data);
+			statistics_dhcps(nip->info + msg);
 			break;
 		case IP_TYPE_UNKNOWN:
-			//FIXME
-			printf("EEEE\n");
+			space = printf("        Send's IP packet with protocol %d", (uint32_t)(nip->info[msg].data));
 			break;
+		}
+		if(space != 0) {
+			stats_time(info, space);
 		}
 	}
 }
 
-void statistics_stp(const struct proto_stp *stp) {
-	printf("    STP Bridge: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", stp->bridge[0],
+void statistics_stp(const struct info_field *info) {
+	const struct proto_stp *stp = info->data;
+	unsigned space;
+
+	space = printf("    STP Bridge: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", stp->bridge[0],
 			stp->bridge[1], stp->bridge[2], stp->bridge[3], stp->bridge[4],
 			stp->bridge[5], stp->bridge[6], stp->bridge[7]);
+	stats_time(info, space);
 
 	printf("        Root:   %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n        Port:   %04X\n", stp->root[0],
 			stp->root[1], stp->root[2], stp->root[3], stp->root[4], stp->root[5],
 			stp->root[6], stp->root[7], stp->port);
 }
 
-void statistics_cdp(const struct proto_cdp *cdp) {
+void statistics_cdp(const struct info_field *info) {
+	const struct proto_cdp *cdp = info->data;
 	char buf[17];
+	unsigned space;
 
 	memcpy(buf, cdp->did, 16);
 	buf[16] = '\0';
-	printf("    CDP Device ID %s ", buf);
+	space = printf("    CDP Device ID %s ", buf);
+	stats_time(info, space);
 	memcpy(buf, cdp->port, 10);
 	buf[10] = '\0';
 	printf("        Port %s\n", buf);
@@ -104,57 +123,63 @@ void statistics_eth_based(void) {
 	unsigned msg, space;
 
 	LIST_WALK(neth, &list_ether) {
-		space = printf("Ether %02X:%02X:%02X:%02X:%02X:%02X", neth->mac[0], neth->mac[1], neth->mac[2],
+		printf("Ether %02X:%02X:%02X:%02X:%02X:%02X\n", neth->mac[0], neth->mac[1], neth->mac[2],
 				neth->mac[3], neth->mac[4], neth->mac[5]);
-		stats_time(neth->info, space);
-		printf("\n");
-
 		for(msg = 0; msg < neth->count; msg++) {
+			space = 0;
 			switch(neth->info[msg].type) {
 			case ETH_TYPE_UNKNOWN:
-				//FIXME
-				printf("WWWW\n");
+				space = printf("    Send's ethernet packet of type %04X", (uint32_t) (neth->info[msg].data));
 				break;
 			case ETH_TYPE_SNAP_UNKNOWN:
-				//FIXME
-				printf("WWWW\n");
+				space = printf("    Send's SNAP packet of type %04X", (uint32_t) (neth->info[msg].data));
 				break;
 			case ETH_TYPE_LLC_UNKNOWN:
-				//FIXME
-				printf("WWWW\n");
+				space = printf("    Send's Ethernet LLC packet from %d to %d",
+						((uint32_t) (neth->info[msg].data) ) & 0xFF, (((uint32_t) (neth->info[msg].data)) >> 8) & 0xFF);
 				break;
 			case ETH_TYPE_IP:
-				statistics_ip(neth->info[msg].data);
+				statistics_ip(neth->info + msg);
 				break;
 			case ETH_TYPE_STP:
-				statistics_stp(neth->info[msg].data);
+				statistics_stp(neth->info + msg);
 				break;
 			case ETH_TYPE_STP_UNKNOWN:
-				//FIXME
-				printf("WWWW\n");
+				switch(((uint32_t) neth->info[msg].data) & 0xFF00) {
+				case STP_UNKNOWN_PROTOCOL:
+					space = printf("    Send's STP packet with protocol %d", ((uint32_t) (neth->info[msg].data)) & 0xFF);
+					break;
+				case STP_UNKNOWN_VERSION:
+					space = printf("    Send's STP packet with version %d", ((uint32_t) (neth->info[msg].data)) & 0xFF);
+					break;
+				case STP_UNKNOWN_TYPE:
+					space = printf("    Send's STP packet with type %d", ((uint32_t) (neth->info[msg].data)) & 0xFF);
+					break;
+				}
 				break;
 			case ETH_TYPE_CDP:
-				statistics_cdp(neth->info[msg].data);
+				statistics_cdp(neth->info + msg);
 				break;
 			case ETH_TYPE_CDP_UNKNOWN:
-				//FIXME
-				printf("WWWW\n");
+				space = printf("    Send's CDP packet of version %d", (uint32_t) (neth->info[msg].data));
 				break;
 			case ETH_TYPE_ARP_UNKNOWN:
-				//FIXME
-				printf("WWWW\n");
+				space = printf("Send's ARP packet with HW prot %d", (uint32_t) (neth->info[msg].data));
 				break;
 			case ETH_TYPE_REVARP:
-				printf("REVARP Send\n");
+				space = printf("    REVARP Detected");
 			case ETH_TYPE_VLAN:
-				printf("VLAN Detected\n");
+				space = printf("    VLAN Detected");
 				break;
 			case ETH_TYPE_EAP:
-				printf("Ask's for EAP Authentification\n");
+				space = printf("    Ask's for EAP Authentification");
 				break;
 			case ETH_TYPE_WLCCP:
-				printf("Send's WLCCP\n");
+				space = printf("    Send's WLCCP");
 				break;
+			}
+			if(space != 0) {
+				stats_time(neth->info + msg, space);
 			}
 		}
 	}

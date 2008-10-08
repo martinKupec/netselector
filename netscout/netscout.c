@@ -136,8 +136,8 @@ void node_set_info(const struct shell_exchange *ex, const uint32_t time, const i
 		node->info[here].time_last = time;
 		node->info[here].count++;
 		if((ex->higher_type != ETH_TYPE_IP) &&
-				(ex->higher_type != ETH_TYPE_ARP) && info_data_size(ex->higher_type)) {
-			printf("%d: %X\n", ex->higher_type, ex->higher_data);
+				(ex->higher_type != ETH_TYPE_ARP) &&
+				info_data_size(ex->higher_type)) {
 			free(ex->higher_data);
 		}
 		return;
