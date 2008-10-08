@@ -9,19 +9,15 @@
 #include "link.h"
 #include "list.h"
 
-static void stats_time(const struct info_field *info, const unsigned count, unsigned space) {
-	uint32_t avg;
+static void stats_time(const struct info_field *info, unsigned space) {
 
 	while(space < 40) {
 		putchar(' ');
 		space++;
 	}
-	if(!count)
-		return;
-	avg = info[count - 1].time / count; //FIXME - not true anymore
-	printf("First %03u.%03u ", SHOW_TIME(info[0].time)); //Probably also not true
-	printf("Count %d ", count);
-	printf("Avg %03u.%03u\n", SHOW_TIME(avg));
+	printf("First %03u.%03u ", SHOW_TIME(info->time_first));
+	printf("Last %03u.%03u ", SHOW_TIME(info->time_last));
+	printf("Count %d\n", info->count);
 }
 
 void statistics_nbns(const struct proto_nbname *nbname) {
@@ -43,7 +39,7 @@ void statistics_ip(const struct stat_ip *nip) {
 	unsigned msg, space;
 
 	space = printf("    IP %d.%d.%d.%d", IPQUAD(nip->ip));
-	stats_time(nip->info, nip->count, space);
+	stats_time(nip->info, space);
 
 	for(msg = 0; msg < nip->count; msg++) {
 		switch(nip->info[msg].type) {
@@ -110,7 +106,7 @@ void statistics_eth_based(void) {
 	LIST_WALK(neth, &list_ether) {
 		space = printf("Ether %02X:%02X:%02X:%02X:%02X:%02X", neth->mac[0], neth->mac[1], neth->mac[2],
 				neth->mac[3], neth->mac[4], neth->mac[5]);
-		stats_time(neth->info, neth->count, space);
+		stats_time(neth->info, space);
 		printf("\n");
 
 		for(msg = 0; msg < neth->count; msg++) {

@@ -23,6 +23,37 @@ enum {
 	NODE_TYPE_WIFI
 };
 
+enum {
+	ETH_TYPE_NONE,
+	ETH_TYPE_IP,
+	ETH_TYPE_ARP,
+	ETH_TYPE_REVARP,
+	ETH_TYPE_VLAN,
+	ETH_TYPE_EAP,
+	ETH_TYPE_CDP,
+	ETH_TYPE_WLCCP,
+	ETH_TYPE_STP,
+	ETH_TYPE_STP_UNKNOWN,
+	ETH_TYPE_CDP_UNKNOWN,
+	ETH_TYPE_SNAP_UNKNOWN,
+	ETH_TYPE_ARP_UNKNOWN,
+	ETH_TYPE_LLC_UNKNOWN,
+	ETH_TYPE_UNKNOWN,
+	ETH_TYPE_LAST,
+
+	IP_TYPE_NONE,
+	IP_TYPE_ICMP,
+	IP_TYPE_TCP,
+	IP_TYPE_UDP,
+	IP_TYPE_SSDP,
+	IP_TYPE_NBNS,
+	IP_TYPE_DHCPC,
+	IP_TYPE_DHCPS,
+	IP_TYPE_UNKNOWN,
+	IP_TYPE_LAST,
+	INFO_TYPE_LAST
+};
+
 struct shell_exchange {
 	void *lower_node;
 	uint32_t higher_type;
@@ -37,10 +68,12 @@ typedef struct shell {
 
 typedef void (*hndl_p)(const uint8_t *pkt, shell *sh);
 
-struct info_field { //Do not reorder
+struct info_field {
 	uint32_t type;
-	uint32_t time;
 	void *data;
+	uint32_t count;
+	uint32_t time_first;
+	uint32_t time_last;
 };
 
 typedef struct stat_ether {

@@ -25,14 +25,87 @@ struct list list_ether, list_ip, list_wifi;
 static volatile int signal_stop = 1;
 static uint64_t start_time;
 
+size_t info_data_size(const uint32_t type) {
+	switch(type) {
+	case ETH_TYPE_IP:
+	case ETH_TYPE_ARP:
+		return sizeof(struct stat_ip);
+	case ETH_TYPE_CDP:
+		return sizeof(struct proto_cdp);
+	case ETH_TYPE_STP:
+		return sizeof(struct proto_stp);
+	case IP_TYPE_NBNS:
+		return sizeof(struct proto_nbname);
+	case IP_TYPE_DHCPS:
+		return sizeof(struct proto_dhcp);
+
+	case ETH_TYPE_STP_UNKNOWN:
+	case ETH_TYPE_CDP_UNKNOWN:
+	case ETH_TYPE_SNAP_UNKNOWN:
+	case ETH_TYPE_ARP_UNKNOWN:
+	case ETH_TYPE_LLC_UNKNOWN:
+	case ETH_TYPE_UNKNOWN:
+	case ETH_TYPE_WLCCP:
+	case ETH_TYPE_EAP:
+	case ETH_TYPE_REVARP:
+	case ETH_TYPE_VLAN:
+	case IP_TYPE_ICMP:
+	case IP_TYPE_TCP:
+	case IP_TYPE_UDP:
+	case IP_TYPE_SSDP:
+	case IP_TYPE_DHCPC:
+	case IP_TYPE_UNKNOWN:
+	default:
+		return 0;
+	}
+}
+
+int info_cmp(const struct info_field *info, unsigned type, void *data, size_t size) {
+	if(info->type != type) {
+		if(info->type < type) {
+			return -1;
+		}
+		return 1;
+	}
+
+	if(size == 0) {
+		if(data < info->data) {
+			return -1;
+		} else if(data > info->data) {
+			return 1;
+		} 
+		return 0;
+	} 
+	return memcmp(info->data, data, size);
+}
+
+unsigned node_info_find(const struct info_field *info, const unsigned count, const struct shell_exchange *ex, int *found) {
+	const size_t size = info_data_size(ex->higher_type);
+	int i = 0, j = count, a = 0, c = 1;
+
+	while(c && (i != j)) {
+		a = (i + j) / 2;
+		c = info_cmp(info + a, ex->higher_type, ex->higher_data, size);
+		if(c < 0) {
+			j = a;
+		} else if(c > 0) {
+			i = a + 1;
+		} 
+	}
+	if(found && !c) {
+		*found = 1;
+	}
+	return a;
+}
+
 /*
  * Makes room for info and places it in right place
  */
 void node_set_info(const struct shell_exchange *ex, const uint32_t time, const int node_type) {
 	void *whole_node = ex->lower_node;
 	struct pseudo_node *node;
-	struct info_field my = {.type = ex->higher_type, .time = time};
 	unsigned here;
+	int found = 0;
 
 	switch(node_type) {
 	case NODE_TYPE_ETH:
@@ -45,27 +118,35 @@ void node_set_info(const struct shell_exchange *ex, const uint32_t time, const i
 
 	if(node->info == NULL) {
 		node->info = (struct info_field *) malloc(sizeof(struct info_field) * 16); 
+		node->count = 1;
+		here = 0;
 	} else {
-		if((node->count & 0x0F) == 0x0F) { // mod 16 is 0
-			node->info = (struct info_field *) realloc(node->info, sizeof(struct info_field) * (node->count + 16));
+		here = node_info_find(node->info, node->count, ex, &found);
+		if(!found) {
+			if((node->count & 0x0F) == 0x0F) { // mod 16 is 0
+				node->info = (struct info_field *) realloc(node->info, sizeof(struct info_field) * (node->count + 16));
+			}
+			if(here != node->count) {
+				bcopy(node->info + here, node->info + here + 1, sizeof(struct info_field) * (node->count - here));
+				node->count++;
+			}
 		}
 	}
-	if(!node->count) { //Nothing here yet
-		here = 0;
-	} else if(memcmp(&my, node->info + node->count - 1, sizeof(uint32_t) * 2) > 0) { //Last is before
-		here = node->count;
-	} else { //Need to put inside
-		for(here = 0; here < node->count; here++) {
-			if(memcmp(&my, node->info + node->count - 1, sizeof(uint32_t) * 2) > 0) {
-				break;
-			}
-			bcopy(node->info + here, node->info + here + 1, sizeof(struct info_field) * (node->count - here));
+	if(found) {
+		node->info[here].time_last = time;
+		node->info[here].count++;
+		if((ex->higher_type != ETH_TYPE_IP) &&
+				(ex->higher_type != ETH_TYPE_ARP) && info_data_size(ex->higher_type)) {
+			printf("%d: %X\n", ex->higher_type, ex->higher_data);
+			free(ex->higher_data);
 		}
+		return;
 	}
 	node->info[here].type = ex->higher_type;
 	node->info[here].data = ex->higher_data;
-	node->info[here].time = time;
-	node->count++;
+	node->info[here].time_first = time;
+	node->info[here].time_last = time;
+	node->info[here].count++;
 }
 
 /*
