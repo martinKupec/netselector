@@ -191,7 +191,7 @@ void statistics_wifi_based(void) {
 	unsigned int avg;
 
 	LIST_WALK(nwifi, &list_wifi) {
-		space = printf("Wifi Essid %s", nwifi->essid);
+		space = printf("Wifi Essid %s count %d\n", nwifi->essid, nwifi->count);
 		//stats_time(nwifi->time, nwifi->_count, space);
 
 		printf("        Quality ");

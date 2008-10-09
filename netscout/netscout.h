@@ -15,6 +15,10 @@
 
 #endif
 
+#ifndef bool
+	#define bool _Bool
+#endif
+
 #include <stdint.h>
 
 enum {

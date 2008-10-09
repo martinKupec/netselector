@@ -187,21 +187,26 @@ static void usage(void) {
 -f <file>	Use dump file instead of live\n\
 -i <interface>	Ethernet listening on <interface> \n\
 -d	Send DHCP Offers\n\
+-p  Promiscuous mode\n\
+-s  Show statistics\n\
+-h  Show this help\n\
 \n");
 }
 
 int main(int argc, char **argv) {
+	char errbuf[PCAP_ERRBUF_SIZE];
 	hndl_p datalink_hndl;
 	pcap_t *pcap_hndl;
+	int dlink, opt;
+	struct timeval time;
 	char *dev = NULL;
 	char *file = NULL;
 	char *wifidev = NULL;
-	int dhcp_active = 0;
-	char errbuf[PCAP_ERRBUF_SIZE];
-	int dlink, opt;
-	struct timeval time;
+	bool dhcp_active = 0;
+	bool promiscuous = 0;
+	bool show_stats = 0;
 	
-	while ((opt = getopt(argc, argv, "w:f:i:d")) >= 0) {
+	while ((opt = getopt(argc, argv, "hspw:f:i:d")) >= 0) {
 		switch(opt) {
 		case 'w':
 			wifidev = optarg;
@@ -214,6 +219,14 @@ int main(int argc, char **argv) {
 			break;
 		case 'd':
 			dhcp_active = 1;
+			break;
+		case 'p':
+			promiscuous = 1;
+			break;
+		case 's':
+			show_stats = 1;
+			break;
+		case 'h':
 		default:
 			usage();
 			return 1;
@@ -237,7 +250,7 @@ int main(int argc, char **argv) {
 	} else if(dev) {
 		printf("Device: %s\n", dev);
 
-		pcap_hndl = pcap_open_live(dev, BUFSIZ, 1, 250, errbuf);
+		pcap_hndl = pcap_open_live(dev, BUFSIZ, promiscuous, 250, errbuf);
 		if (pcap_hndl == NULL) {
 			fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
 			return 2;
@@ -252,11 +265,11 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Don't know datalink type %d\n", dlink);
 		return 2;
 	}
+
 	gettimeofday(&time, NULL);
 	start_time = time.tv_sec * 1000 + (time.tv_usec / 1000);
-	pcap_setnonblock(pcap_hndl, 1, errbuf);
 
-	if(wifidev) {
+	if(!file && wifidev) {
 		if(wifi_scan_init(wifidev) > 0) {
 			fprintf(stderr, "Wifi scan init error\n");
 			return 3;
@@ -265,6 +278,7 @@ int main(int argc, char **argv) {
 	if(file) {
 		pcap_dispatch(pcap_hndl, -1, catcher, (u_char *) datalink_hndl);
 	} else {
+		pcap_setnonblock(pcap_hndl, 1, errbuf);
 		while(signal_stop) {
 			int ret;
 			fd_set sel;
@@ -293,16 +307,18 @@ int main(int argc, char **argv) {
 			if(ret > 0) {
 				ret = pcap_dispatch(pcap_hndl, -1, catcher, (u_char *) datalink_hndl);
 				if(ret < 0) {
-					printf("pcap_dispatch returned: %d\n", ret);
+					fprintf(stderr, "pcap_dispatch returned: %d\n", ret);
 					return 1;
 				}
 			}
 		}
 	}
-	printf("\nStatistics:\n");
-	statistics_eth_based();
-	if(wifidev) {
-		statistics_wifi_based();
+	if(show_stats) {
+		printf("\nStatistics:\n");
+		statistics_eth_based();
+		if(wifidev) {
+			statistics_wifi_based();
+		}
 	}
 	printf("\n");
 	return 0;
