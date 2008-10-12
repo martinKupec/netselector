@@ -58,6 +58,10 @@ enum {
 	INFO_TYPE_LAST
 };
 
+enum {
+	SCORE_TARGET_DEFAULT = 100
+};
+
 struct shell_exchange {
 	void *lower_node;
 	uint32_t higher_type;
@@ -70,7 +74,7 @@ typedef struct shell {
 	struct shell_exchange to, from;
 } shell;
 
-typedef void (*hndl_p)(const uint8_t *pkt, shell *sh);
+typedef unsigned (*hndl_p)(const uint8_t *pkt, shell *sh);
 
 struct info_field {
 	uint32_t type;

@@ -7,7 +7,7 @@
 #define STP_UNKNOWN_VERSION		0x4000
 #define STP_UNKNOWN_TYPE		0x2000
 
-void link_hndl_ether(const uint8_t *pkt, shell *sh);
+unsigned link_hndl_ether(const uint8_t *pkt, shell *sh);
 
 #endif
 

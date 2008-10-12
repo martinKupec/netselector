@@ -24,6 +24,8 @@ struct list list_ether, list_ip, list_wifi;
 
 static volatile int signal_stop = 1;
 static uint64_t start_time;
+static unsigned score = 0;
+unsigned score_target = 0;
 
 size_t info_data_size(const uint32_t type) {
 	switch(type) {
@@ -67,13 +69,13 @@ int info_cmp(const struct info_field *info, unsigned type, void *data, size_t si
 		}
 		return 1;
 	}
-
 	if(size == 0) {
-		if(data < info->data) {
-			return -1;
-		} else if(data > info->data) {
+		if(data != info->data) {
+			if(info->data < data) {
+				return -1;
+			} 
 			return 1;
-		} 
+		}
 		return 0;
 	} 
 	return memcmp(info->data, data, size);
@@ -81,21 +83,30 @@ int info_cmp(const struct info_field *info, unsigned type, void *data, size_t si
 
 unsigned node_info_find(const struct info_field *info, const unsigned count, const struct shell_exchange *ex, int *found) {
 	const size_t size = info_data_size(ex->higher_type);
-	int i = 0, j = count, a = 0, c = 1;
+	int i = 0, j = count - 1, a, c = 1;
 
-	while(c && (i != j)) {
+	while(c && (i <= j)) {
 		a = (i + j) / 2;
 		c = info_cmp(info + a, ex->higher_type, ex->higher_data, size);
 		if(c < 0) {
-			j = a;
-		} else if(c > 0) {
 			i = a + 1;
+		} else if(c > 0) {
+			j = a - 1;
 		} 
 	}
-	if(found && !c) {
-		*found = 1;
+	if(!c) { //Exact match
+		if(found) {
+			*found = 1;
+		}
+		return a;
 	}
-	return a;
+	if(j < 0) {
+		return 0;
+	}
+	if(i > (count - 1)) {
+		return count;
+	}
+	return i;
 }
 
 /*
@@ -128,8 +139,8 @@ void node_set_info(const struct shell_exchange *ex, const uint32_t time, const i
 			}
 			if(here != node->count) {
 				bcopy(node->info + here, node->info + here + 1, sizeof(struct info_field) * (node->count - here));
-				node->count++;
 			}
+			node->count++;
 		}
 	}
 	if(found) {
@@ -170,7 +181,7 @@ static void catcher(u_char *args, const struct pcap_pkthdr *hdr, const u_char *p
 
 	sh.time = (uint32_t)(now - start_time);
 	sh.packet = pkt;
-	hndl((const uint8_t *) pkt, &sh);
+	score += hndl((const uint8_t *) pkt, &sh);
 }
 
 /*
@@ -206,7 +217,7 @@ int main(int argc, char **argv) {
 	bool promiscuous = 0;
 	bool show_stats = 0;
 	
-	while ((opt = getopt(argc, argv, "hspw:f:i:d")) >= 0) {
+	while ((opt = getopt(argc, argv, "hspw:f:i:dt::")) >= 0) {
 		switch(opt) {
 		case 'w':
 			wifidev = optarg;
@@ -225,6 +236,13 @@ int main(int argc, char **argv) {
 			break;
 		case 's':
 			show_stats = 1;
+			break;
+		case 't':
+			if(optarg) {
+				score_target = atoi(optarg);
+			} else {
+				score_target = SCORE_TARGET_DEFAULT;
+			}
 			break;
 		case 'h':
 		default:
@@ -279,7 +297,7 @@ int main(int argc, char **argv) {
 		pcap_dispatch(pcap_hndl, -1, catcher, (u_char *) datalink_hndl);
 	} else {
 		pcap_setnonblock(pcap_hndl, 1, errbuf);
-		while(signal_stop) {
+		while(signal_stop && (!score_target || score < score_target)) {
 			int ret;
 			fd_set sel;
 

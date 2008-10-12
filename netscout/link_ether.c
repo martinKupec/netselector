@@ -25,7 +25,7 @@ struct llc_header {
 /*
  * Basic handler for ethernet link layer
  */
-void link_hndl_ether(const uint8_t *pkt, shell *sh) {
+unsigned link_hndl_ether(const uint8_t *pkt, shell *sh) {
 	const struct ether_header *hdr = (const struct ether_header *) pkt;
 	const uint16_t etype = ntohs(hdr->ether_type);
 	const uint8_t *ether_payload = pkt + sizeof(struct ether_header);
@@ -86,4 +86,5 @@ void link_hndl_ether(const uint8_t *pkt, shell *sh) {
 
 	ether_node_set_info(&sh->to, sh->time);
 	ether_node_set_info(&sh->from, sh->time);
+	return 0;
 }
