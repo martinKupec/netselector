@@ -27,7 +27,7 @@ struct stp_pkt {
 #define STP_TYPE_CONFIGURATION	0
 #define STP_TYPE_TOPO_CHANGE	1
 
-void net_hndl_stp(const uint8_t *pkt, shell *sh) {
+unsigned net_hndl_stp(const uint8_t *pkt, shell *sh) {
 	const struct stp_pkt *stp = (const struct stp_pkt *) pkt;
 	struct proto_stp *info;
 
@@ -38,12 +38,12 @@ void net_hndl_stp(const uint8_t *pkt, shell *sh) {
 		if(stp->version != 0x00) {
 			sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
 			sh->from.higher_data = (void *) (STP_UNKNOWN_VERSION | ((uint32_t) stp->version));
-			return;
+			return SCORE_STP_UNKNOWN;
 		}
 		if(stp->type != STP_TYPE_CONFIGURATION) {
 			sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
 			sh->from.higher_data = (void *) (STP_UNKNOWN_TYPE | ((uint32_t) stp->type));
-			return;
+			return SCORE_STP_NONCONFIG;
 		}
 		info = stp_getmem();
 		memcpy(info->bridge, stp->bridge_id, 8);
@@ -56,6 +56,6 @@ void net_hndl_stp(const uint8_t *pkt, shell *sh) {
 		sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
 		sh->from.higher_data = (void *) (STP_UNKNOWN_PROTOCOL | ((uint32_t) stp->protocol));
 	}
-	return;
+	return SCORE_STP;
 }
 

@@ -37,7 +37,7 @@ struct cdp {
 /*
  * Cisco Discovery Protocol dispatcher
  */
-static void net_snap_cdp(const uint8_t *pkt, shell *sh) {
+static unsigned net_snap_cdp(const uint8_t *pkt, shell *sh) {
 	const struct cdp *p = (const struct cdp *) pkt;
 	const struct ether_header *hdr = (const struct ether_header *) sh->packet;
 	struct proto_cdp *info;
@@ -47,7 +47,7 @@ static void net_snap_cdp(const uint8_t *pkt, shell *sh) {
 		sh->from.higher_data = (void *) ((uint32_t) p->version);
 		sh->to.higher_type = ETH_TYPE_NONE;
 		sh->to.higher_data = NULL;
-		return;
+		return SCORE_CDP_UNKNOWN;
 	}
 	info = cdp_getmem();
 	bzero(info, sizeof(proto_cdp));
@@ -97,33 +97,37 @@ static void net_snap_cdp(const uint8_t *pkt, shell *sh) {
 	sh->from.higher_data = info;
 	sh->to.higher_type = ETH_TYPE_NONE;
 	sh->to.higher_data = NULL;
+	return SCORE_CDP;
 }
 
 /*
  * Basic SNAP handler
  */
-void net_hndl_snap(const uint8_t *pkt, shell *sh) {
+unsigned net_hndl_snap(const uint8_t *pkt, shell *sh) {
 	const struct llc_snap_header *hdr = (const struct llc_snap_header *) pkt;
 	const uint8_t *payload = ((const uint8_t *) (hdr)) + sizeof(struct llc_snap_header);
 	const uint16_t snap_type = ntohs(hdr->type);
+	unsigned score = 0;
 
 	switch(snap_type) {
 	case SNAP_CDP:
-		net_snap_cdp(payload, sh);
+		score = net_snap_cdp(payload, sh);
 		break;
 	case SNAP_WLCCP:
 		sh->from.higher_type = ETH_TYPE_WLCCP;
 		sh->from.higher_data = NULL;
 		sh->to.higher_type = ETH_TYPE_NONE;
 		sh->to.higher_data = NULL;
+		score = SCORE_WLCCP;
 		break;
 	default:
 		sh->from.higher_type = ETH_TYPE_SNAP_UNKNOWN;
 		sh->from.higher_data = (void *) ((uint32_t) snap_type);
 		sh->to.higher_type = ETH_TYPE_NONE;
 		sh->to.higher_data = NULL;
+		score = SCORE_SNAP_UNKNOWN;
 		break;
 	}
-	return;
+	return score;
 }
 

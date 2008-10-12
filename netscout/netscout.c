@@ -297,7 +297,7 @@ int main(int argc, char **argv) {
 		pcap_dispatch(pcap_hndl, -1, catcher, (u_char *) datalink_hndl);
 	} else {
 		pcap_setnonblock(pcap_hndl, 1, errbuf);
-		while(signal_stop && (!score_target || score < score_target)) {
+		while(signal_stop && (!score_target || (score < score_target))) {
 			int ret;
 			fd_set sel;
 

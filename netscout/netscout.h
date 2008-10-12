@@ -20,6 +20,7 @@
 #endif
 
 #include <stdint.h>
+#include "score.h"
 
 enum {
 	NODE_TYPE_ETH,
@@ -56,10 +57,6 @@ enum {
 	IP_TYPE_UNKNOWN,
 	IP_TYPE_LAST,
 	INFO_TYPE_LAST
-};
-
-enum {
-	SCORE_TARGET_DEFAULT = 100
 };
 
 struct shell_exchange {

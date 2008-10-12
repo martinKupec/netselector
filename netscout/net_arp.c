@@ -37,20 +37,24 @@ static void net_arp_ether(const uint8_t *pkt, shell *sh) {
 /*
  * Basi ARP handler
  */
-void net_hndl_arp(const uint8_t *pkt, shell *sh) {
+unsigned net_hndl_arp(const uint8_t *pkt, shell *sh) {
 	const struct arphdr *hdr = (const struct arphdr *) pkt;
 	const unsigned short hw_prot = ntohs(hdr->ar_hrd);
+	unsigned score = 0;
 
 	switch(hw_prot) {
 	case ARPHRD_ETHER:
 		net_arp_ether(pkt, sh);
+		score = SCORE_IP + SCORE_ARP;
 		break;
 	default:
 		sh->from.higher_type = ETH_TYPE_ARP_UNKNOWN;
 		sh->from.higher_data = (void *) ((uint32_t) hw_prot);
 		sh->to.higher_type = ETH_TYPE_NONE;
 		sh->to.higher_data = NULL;
+		score = SCORE_ARP_UNKNOWN;
 		break;
 	}
+	return score;
 }
 

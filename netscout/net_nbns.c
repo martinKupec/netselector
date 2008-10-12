@@ -18,7 +18,7 @@ static void sprint_nbname(char *buf, const unsigned char *name) {
 	}
 }
 
-void net_hndl_nbns(const uint8_t *pkt, shell *sh) {
+unsigned net_hndl_nbns(const uint8_t *pkt, shell *sh) {
 	struct proto_nbname *info = nbname_getmem();
 
 	sprint_nbname(info->name, pkt + 13);
@@ -27,5 +27,6 @@ void net_hndl_nbns(const uint8_t *pkt, shell *sh) {
 	sh->from.higher_data = info;
 	sh->to.higher_type = IP_TYPE_NONE;
 	sh->to.higher_data = NULL;
+	return SCORE_NBNS;
 }
 
