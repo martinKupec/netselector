@@ -20,7 +20,6 @@
 #endif
 
 #include <stdint.h>
-#include "score.h"
 
 enum {
 	NODE_TYPE_ETH,
@@ -139,7 +138,7 @@ typedef struct proto_dhcp {
 
 extern struct list list_ether, list_ip, list_wifi;
 
-void node_set_info(const struct shell_exchange *ex, const uint32_t time, int node_type);
+unsigned node_set_info(const struct shell_exchange *ex, const uint32_t time, int node_type);
 
 #endif
 

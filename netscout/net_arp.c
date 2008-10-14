@@ -14,10 +14,11 @@
 /*
  * Handles ARP packets on ethernet
  */
-static void net_arp_ether(const uint8_t *pkt, shell *sh) {
+static unsigned net_arp_ether(const uint8_t *pkt, shell *sh) {
 	const struct ether_arp *arp = (const struct ether_arp *) pkt;
 	struct stat_ip *node = list_ip_add_uniq(arp->arp_spa);
 	void *lower_node = sh->from.lower_node;
+	unsigned score;
 
 	node->ether = sh->from.lower_node;
 
@@ -25,13 +26,14 @@ static void net_arp_ether(const uint8_t *pkt, shell *sh) {
 	sh->from.higher_type = IP_TYPE_NONE;
 	sh->from.higher_data = NULL;
 
-	ip_node_set_info(&sh->from, sh->time);
+	score = ip_node_set_info(&sh->from, sh->time);
 
 	sh->from.lower_node = lower_node;
 	sh->from.higher_type = ETH_TYPE_ARP;
 	sh->from.higher_data = node;
 	sh->to.higher_type = ETH_TYPE_NONE;
 	sh->to.higher_data = NULL;
+	return score;
 }
 
 /*
@@ -44,15 +46,13 @@ unsigned net_hndl_arp(const uint8_t *pkt, shell *sh) {
 
 	switch(hw_prot) {
 	case ARPHRD_ETHER:
-		net_arp_ether(pkt, sh);
-		score = SCORE_IP + SCORE_ARP;
+		score += net_arp_ether(pkt, sh);
 		break;
 	default:
 		sh->from.higher_type = ETH_TYPE_ARP_UNKNOWN;
 		sh->from.higher_data = (void *) ((uint32_t) hw_prot);
 		sh->to.higher_type = ETH_TYPE_NONE;
 		sh->to.higher_data = NULL;
-		score = SCORE_ARP_UNKNOWN;
 		break;
 	}
 	return score;

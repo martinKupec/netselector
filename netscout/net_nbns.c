@@ -27,6 +27,6 @@ unsigned net_hndl_nbns(const uint8_t *pkt, shell *sh) {
 	sh->from.higher_data = info;
 	sh->to.higher_type = IP_TYPE_NONE;
 	sh->to.higher_data = NULL;
-	return SCORE_NBNS;
+	return 0;
 }
 

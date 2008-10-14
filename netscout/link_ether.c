@@ -13,6 +13,7 @@
 #include "network.h"
 #include "link.h"
 #include "list.h"
+#include "score.h"
 
 struct llc_header {
 	uint8_t dsap;
@@ -29,10 +30,16 @@ unsigned link_hndl_ether(const uint8_t *pkt, shell *sh) {
 	const struct ether_header *hdr = (const struct ether_header *) pkt;
 	const uint16_t etype = ntohs(hdr->ether_type);
 	const uint8_t *ether_payload = pkt + sizeof(struct ether_header);
-	unsigned score = SCORE_ETHER;
+	unsigned score = 0;
 	
 	sh->from.lower_node = list_ether_add_uniq(hdr->ether_shost);;
+	if(((struct stat_ether *) sh->from.lower_node)->count == 0) {
+		score += SCORE_ETHER;
+	}
 	sh->to.lower_node = list_ether_add_uniq(hdr->ether_dhost);
+	if(((struct stat_ether *) sh->to.lower_node)->count == 0) {
+		score += SCORE_ETHER;
+	}
 
 	switch(etype) {
 	case ETHERTYPE_IP:
@@ -46,14 +53,12 @@ unsigned link_hndl_ether(const uint8_t *pkt, shell *sh) {
 		sh->from.higher_data = NULL;
 		sh->to.higher_type = ETH_TYPE_NONE;
 		sh->to.higher_data = NULL;
-		score += SCORE_REVARP;
 		break;
 	case ETHERTYPE_VLAN:
 		sh->from.higher_type = ETH_TYPE_VLAN;
 		sh->from.higher_data = NULL;
 		sh->to.higher_type = ETH_TYPE_NONE;
 		sh->to.higher_data = NULL;
-		score += SCORE_VLAN;
 		break;
 	case ETHERTYPE_EAP:
 		score += net_hndl_eap(ether_payload, sh);
@@ -76,7 +81,6 @@ unsigned link_hndl_ether(const uint8_t *pkt, shell *sh) {
 				sh->from.higher_data = (void *) ((llc_hdr->dsap << 8) | llc_hdr->ssap); //Ugly but efficient
 				sh->to.higher_type = ETH_TYPE_NONE;
 				sh->to.higher_data = NULL;
-				score += SCORE_LLC_UNKNOWN;
 				break;
 			}
 		} else {
@@ -84,12 +88,11 @@ unsigned link_hndl_ether(const uint8_t *pkt, shell *sh) {
 			sh->from.higher_data = (void *) ((uint32_t) etype); //Ugly but efficient
 			sh->to.higher_type = ETH_TYPE_NONE;
 			sh->to.higher_data = NULL;
-			score += SCORE_ETH_UNKNOWN;
 		}
 		break;
 	}
 
-	ether_node_set_info(&sh->to, sh->time);
-	ether_node_set_info(&sh->from, sh->time);
+	score += ether_node_set_info(&sh->to, sh->time);
+	score += ether_node_set_info(&sh->from, sh->time);
 	return score;
 }

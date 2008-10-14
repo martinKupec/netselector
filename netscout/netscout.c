@@ -14,6 +14,7 @@
 #include "wifi.h"
 #include "statistics.h"
 #include "dhcpc.h"
+#include "score.h"
 
 struct pseudo_node {
 	unsigned count;
@@ -26,6 +27,50 @@ static volatile int signal_stop = 1;
 static uint64_t start_time;
 static unsigned score = 0;
 unsigned score_target = 0;
+
+unsigned info_data_score(unsigned score) {
+	switch(score) {
+	case ETH_TYPE_IP:
+	case ETH_TYPE_ARP:
+		return 0; //Added when adding to list
+	case ETH_TYPE_CDP:
+		return SCORE_CDP;
+	case ETH_TYPE_STP:
+		return SCORE_STP;
+	case IP_TYPE_NBNS:
+		return SCORE_NBNS;
+	case IP_TYPE_DHCPS:
+		return SCORE_DHCPS;
+	case ETH_TYPE_STP_UNKNOWN:
+	case ETH_TYPE_CDP_UNKNOWN:
+	case ETH_TYPE_SNAP_UNKNOWN:
+	case ETH_TYPE_ARP_UNKNOWN:
+	case ETH_TYPE_LLC_UNKNOWN:
+	case ETH_TYPE_UNKNOWN:
+	case IP_TYPE_UNKNOWN:
+		return SCORE_UNKNOWN;
+	case ETH_TYPE_WLCCP:
+		return SCORE_WLCCP;
+	case ETH_TYPE_EAP:
+		return SCORE_EAP;
+	case ETH_TYPE_REVARP:
+		return SCORE_REVARP;
+	case ETH_TYPE_VLAN:
+		return SCORE_VLAN;
+	case IP_TYPE_ICMP:
+		return SCORE_ICMP;
+	case IP_TYPE_TCP:
+		return SCORE_TCP;
+	case IP_TYPE_UDP:
+		return SCORE_UDP;
+	case IP_TYPE_SSDP:
+		return SCORE_SSDP;
+	case IP_TYPE_DHCPC:
+		return SCORE_DHCPC;
+	default:
+		return 0;
+	}
+}
 
 size_t info_data_size(const uint32_t type) {
 	switch(type) {
@@ -112,7 +157,7 @@ unsigned node_info_find(const struct info_field *info, const unsigned count, con
 /*
  * Makes room for info and places it in right place
  */
-void node_set_info(const struct shell_exchange *ex, const uint32_t time, const int node_type) {
+unsigned node_set_info(const struct shell_exchange *ex, const uint32_t time, const int node_type) {
 	void *whole_node = ex->lower_node;
 	struct pseudo_node *node;
 	unsigned here;
@@ -151,13 +196,15 @@ void node_set_info(const struct shell_exchange *ex, const uint32_t time, const i
 				info_data_size(ex->higher_type)) {
 			free(ex->higher_data);
 		}
-		return;
+		return 0;
 	}
 	node->info[here].type = ex->higher_type;
 	node->info[here].data = ex->higher_data;
 	node->info[here].time_first = time;
 	node->info[here].time_last = time;
 	node->info[here].count++;
+
+	return info_data_score(node->info[here].type);
 }
 
 /*

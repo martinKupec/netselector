@@ -38,12 +38,12 @@ unsigned net_hndl_stp(const uint8_t *pkt, shell *sh) {
 		if(stp->version != 0x00) {
 			sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
 			sh->from.higher_data = (void *) (STP_UNKNOWN_VERSION | ((uint32_t) stp->version));
-			return SCORE_STP_UNKNOWN;
+			return 0;
 		}
 		if(stp->type != STP_TYPE_CONFIGURATION) {
 			sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
 			sh->from.higher_data = (void *) (STP_UNKNOWN_TYPE | ((uint32_t) stp->type));
-			return SCORE_STP_NONCONFIG;
+			return 0;
 		}
 		info = stp_getmem();
 		memcpy(info->bridge, stp->bridge_id, 8);
@@ -56,6 +56,6 @@ unsigned net_hndl_stp(const uint8_t *pkt, shell *sh) {
 		sh->from.higher_type = ETH_TYPE_STP_UNKNOWN;
 		sh->from.higher_data = (void *) (STP_UNKNOWN_PROTOCOL | ((uint32_t) stp->protocol));
 	}
-	return SCORE_STP;
+	return 0;
 }
 
