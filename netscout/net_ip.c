@@ -26,6 +26,7 @@
 static unsigned net_hndl_udp(const uint8_t *pkt, shell *sh) {
 	const struct udphdr *hdr = (const struct udphdr *) pkt;
 	const uint16_t dport = ntohs(hdr->dest);
+	const uint16_t sport = ntohs(hdr->source);
 	unsigned score = 0;
 
 	switch(dport) {
@@ -47,11 +48,26 @@ static unsigned net_hndl_udp(const uint8_t *pkt, shell *sh) {
 		sh->to.higher_type = IP_TYPE_NONE;
 		sh->to.higher_data = NULL;
 		break;
-	default:
-		sh->from.higher_type = IP_TYPE_UDP;
-		sh->from.higher_data = (void *) ((ntohs(hdr->source) << 16) | (ntohs(hdr->dest)));
+	case UDP_PORT_DNS:
+		sh->from.higher_type = IP_TYPE_DNSC;
+		sh->from.higher_data = NULL;
 		sh->to.higher_type = IP_TYPE_NONE;
 		sh->to.higher_data = NULL;
+		break;
+	default:
+		switch(sport) {
+		case UDP_PORT_DNS:
+			sh->from.higher_type = IP_TYPE_DNSS;
+			sh->from.higher_data = NULL;
+			sh->to.higher_type = IP_TYPE_NONE;
+			sh->to.higher_data = NULL;
+			break;
+		default:
+			sh->from.higher_type = IP_TYPE_UDP;
+			sh->from.higher_data = (void *) ((ntohs(hdr->source) << 16) | (ntohs(hdr->dest)));
+			sh->to.higher_type = IP_TYPE_NONE;
+			sh->to.higher_data = NULL;
+		}
 		break;
 	}
 	return score;

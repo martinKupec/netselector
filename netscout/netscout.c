@@ -243,11 +243,12 @@ static void usage(void) {
 	fprintf(stderr, "Usage: netscout -[i|f] [-w]\n\
 -w <interface>	Enable WiFi scanning on <interface>\n\
 -f <file>	Use dump file instead of live\n\
--i <interface>	Ethernet listening on <interface> \n\
--d	Send DHCP Offers\n\
+-i <interface>	Ethernet listening on <interface>\n\
+-d  Send DHCP Offers\n\
 -p  Promiscuous mode\n\
 -s  Show statistics\n\
--h  Show this help\n\
+-t [<target>] Sets Score target to [<target>] or default\n\
+-h  Show this help\
 \n");
 }
 

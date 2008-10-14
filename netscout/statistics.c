@@ -77,9 +77,15 @@ void statistics_ip(const struct info_field *info) {
 		case IP_TYPE_UNKNOWN:
 			space = printf("        Send's IP packet with protocol %d", (uint32_t)(nip->info[msg].data));
 			break;
+		case IP_TYPE_DNSS:
+			space = printf("        Send's DNS - Server");
+			break;
+		case IP_TYPE_DNSC:
+			space = printf("        Send's DNS - Client");
+			break;
 		}
 		if(space != 0) {
-			stats_time(info, space);
+			stats_time(nip->info + msg, space);
 		}
 	}
 }
