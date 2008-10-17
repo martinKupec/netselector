@@ -10,6 +10,8 @@
 #include "network.h"
 #include "link.h"
 #include "list.h"
+#include "score.h"
+#include "node_info.h"
 
 /*
  * Handles ARP packets on ethernet
@@ -18,18 +20,22 @@ static unsigned net_arp_ether(const uint8_t *pkt, shell *sh) {
 	const struct ether_arp *arp = (const struct ether_arp *) pkt;
 	struct stat_ip *node = list_ip_add_uniq(arp->arp_spa);
 	void *lower_node = sh->from.lower_node;
-	unsigned score;
+	unsigned score = 0;
+
+	if(!node->count) {
+		score += SCORE_IP;
+	}
 
 	node->ether = sh->from.lower_node;
 
 	sh->from.lower_node = node;
-	sh->from.higher_type = IP_TYPE_NONE;
+	sh->from.higher_type = IP_TYPE_ARP;
 	sh->from.higher_data = NULL;
 
-	score = ip_node_set_info(&sh->from, sh->time);
+	score += ip_node_set_info(&sh->from, sh->time);
 
 	sh->from.lower_node = lower_node;
-	sh->from.higher_type = ETH_TYPE_ARP;
+	sh->from.higher_type = ETH_TYPE_IP;
 	sh->from.higher_data = node;
 	sh->to.higher_type = ETH_TYPE_NONE;
 	sh->to.higher_data = NULL;

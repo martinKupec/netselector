@@ -1,19 +1,74 @@
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "netscout.h"
 #include "statistics.h"
 #include "list.h"
 #include "score.h"
 
+#define SPACE_FIRST		40
+#define SPACE_SECOND	80
+
 struct pseudo_node {
 	unsigned count;
 	struct info_field *info;
 };
 
+static unsigned on_eth(const uint8_t *mac, unsigned space) {
+	while(space < SPACE_FIRST) {
+		space++;
+		putchar(' ');
+	}
+	return printf("on ETH %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2],
+				mac[3], mac[4], mac[5]);
+}
+
+static void verdict(unsigned space, const char *format, ...) {
+	va_list va;
+
+	while(space < (SPACE_SECOND - SPACE_FIRST)) {
+		space++;
+		putchar(' ');
+	}
+	va_start(va, format);
+	vprintf(format, va);
+	va_end(va);
+}
+
+static unsigned is_router(const struct info_field *info, unsigned pos, const unsigned size, const unsigned space) {
+	unsigned num = 0;
+
+	while(pos) {
+		pos--;
+		if(info[pos].type == ETH_TYPE_IP) {
+			num++;
+		} else {
+			pos++;
+			break;
+		}
+	}
+	pos += num + 1;
+	while(pos < size) {
+		if(info[pos].type == ETH_TYPE_IP) {
+			num++;
+			pos++;
+		} else {
+			break;
+		}
+	}
+	if(num) {
+		verdict(space, "Probable Gateway (%d)", num + 1);
+		if(num > 4) {
+			return SCORE_GATEWAY;
+		}
+	}
+	return 0;
+}
+
 /*
  * Returns score and prints info about new information 
  */
-static unsigned info_data_score(const void *node, const struct info_field *info) {
+static unsigned info_data_score(const void *node, const struct info_field *info, bool show) {
 	unsigned space = 0;
 	const struct stat_ether *neth = (struct stat_ether *)(node);
 	const struct stat_ip *nip = (struct stat_ip *)(node);
@@ -21,40 +76,36 @@ static unsigned info_data_score(const void *node, const struct info_field *info)
 	switch(info->type) {
 	case ETH_TYPE_IP:
 		space = printf("IP %d.%d.%d.%d", IPQUAD(((const struct stat_ip *)info->data)->ip));
-
-		printf(" on ETH %02X:%02X:%02X:%02X:%02X:%02X", neth->mac[0], neth->mac[1], neth->mac[2],
-				neth->mac[3], neth->mac[4], neth->mac[5]);
-		space = 0;
-		if(neth->info != info) {
-			if((info - 1)->type == ETH_TYPE_IP) {
-				printf(" Probable ROUTER\n");
-				space = 1;
-			}
-		} else if((neth->count - 1) != (info - neth->info)) {
-			if((info + 1)->type == ETH_TYPE_IP) {
-				if(!space) {
-					printf(" Probable ROUTER\n");
-					space = 1;
-				}
-			}
-		}
-		if(!space) {
-			putchar('\n');
-		}
-		return 0; //Added when adding to list
+		space = on_eth(neth->mac, space);
+		space = is_router(neth->info, info - neth->info, neth->count, space);
+		putchar('\n');
+		return space; // IP Added when adding to list, adding just score for gateway
 	case ETH_TYPE_CDP:
-		statistics_cdp(info, 1);
-		printf(" on ETH %02X:%02X:%02X:%02X:%02X:%02X\n", neth->mac[0], neth->mac[1], neth->mac[2],
-				neth->mac[3], neth->mac[4], neth->mac[5]);
+		space = statistics_cdp(info, 1);
+		space = on_eth(neth->mac, space);
+		verdict(space, "Router\n");
 		return SCORE_CDP;
 	case ETH_TYPE_STP:
+		space = statistics_stp(info, 1);
+		space = on_eth(neth->mac, space);
+		verdict(space, "Router\n");
 		return SCORE_STP;
 	case IP_TYPE_NBNS:
 		return SCORE_NBNS;
 	case IP_TYPE_DHCPS:
+		space = statistics_dhcps(info, 1);
+		space = on_eth(nip->ether->mac, space);
+		verdict(space, "DHCP Server\n");
 		return SCORE_DHCPS;
 	case IP_TYPE_ARP:
 		return SCORE_ARP;
+	case IP_TYPE_DNSS:
+		space = printf("DNS %d.%d.%d.%d", IPQUAD(nip->ip));
+		space = on_eth(nip->ether->mac, space);
+		verdict(space, "DNS Server\n");
+		return SCORE_DNSS;
+	case IP_TYPE_DNSC:
+		return SCORE_DNSC;
 	case ETH_TYPE_STP_UNKNOWN:
 	case ETH_TYPE_CDP_UNKNOWN:
 	case ETH_TYPE_SNAP_UNKNOWN:
@@ -64,8 +115,14 @@ static unsigned info_data_score(const void *node, const struct info_field *info)
 	case IP_TYPE_UNKNOWN:
 		return SCORE_UNKNOWN;
 	case ETH_TYPE_WLCCP:
+		space = printf("WLCCP");
+		space = on_eth(neth->mac, space);
+		verdict(space, "Cisco Router\n");
 		return SCORE_WLCCP;
 	case ETH_TYPE_EAP:
+		space = printf("EAP");
+		space = on_eth(neth->mac, space);
+		verdict(space, "EAP Server\n");
 		return SCORE_EAP;
 	case ETH_TYPE_REVARP:
 		return SCORE_REVARP;
@@ -226,5 +283,5 @@ unsigned node_set_info(const struct shell_exchange *ex, const uint32_t time, con
 	node->info[here].time_last = time;
 	node->info[here].count++;
 
-	return info_data_score(whole_node, node->info + here);
+	return info_data_score(whole_node, node->info + here, 1);
 }

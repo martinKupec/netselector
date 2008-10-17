@@ -63,29 +63,29 @@ static void net_snap_cdp(const uint8_t *pkt, shell *sh) {
 			case CDP_DEVICE_ID:
 				i = (len - 4) > 16 ? 16 : len - 4;
 				memcpy(info->did, pkt + 4, i);
-				for(; i < 16; i++) {
-					info->did[i] = ' ';
+				for(; i < 17; i++) {
+					info->did[i] = '\0';
 				}
 				break;
 			case CDP_PORT:
 				i = (len - 4) > 10 ? 10 : len - 4;
 				memcpy(info->port, pkt + 4, i);
-				for(; i < 10; i++) {
-					info->port[i] = ' ';
+				for(; i < 11; i++) {
+					info->port[i] = '\0';
 				}
 				break;
 			case CDP_VERSION:
 				i = (len - 4) > 6 ? 6 : len - 4;
 				memcpy(info->ver, pkt + 4, i);
-				for(; i < 6; i++) {
-					info->ver[i] = ' ';
+				for(; i < 7; i++) {
+					info->ver[i] = '\0';
 				}
 				break;
 			case CDP_PLATFORM:
 				i = (len - 4) > 16 ? 16 : len - 4;
 				memcpy(info->plat, pkt + 4, i);
-				for(; i < 16; i++) {
-					info->plat[i] = ' ';
+				for(; i < 17; i++) {
+					info->plat[i] = '\0';
 				}
 				break;
 			default:

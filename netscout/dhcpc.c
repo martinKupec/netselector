@@ -130,6 +130,8 @@ static void packet_finalize(struct whole_packet *pkt, const uint8_t *hwaddr, con
 	memcpy(pkt->eth.ether_shost, hwaddr, 6);
 	pkt->eth.ether_type = htons(ETHERTYPE_IP);
 
+	bzero(&pkt->ip, sizeof(struct iphdr));
+
 	pkt->ip.protocol = IPPROTO_UDP;
 	pkt->ip.saddr = 0; //From noone
 	pkt->ip.daddr = 0xFFFFFFFF; //To everyone

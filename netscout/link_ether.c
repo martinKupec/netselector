@@ -14,6 +14,7 @@
 #include "link.h"
 #include "list.h"
 #include "score.h"
+#include "node_info.h"
 
 struct llc_header {
 	uint8_t dsap;

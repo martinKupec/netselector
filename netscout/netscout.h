@@ -15,10 +15,7 @@
 
 #endif
 
-#ifndef bool
-	#define bool _Bool
-#endif
-
+#include <stdbool.h>
 #include <stdint.h>
 
 enum {
@@ -30,7 +27,6 @@ enum {
 enum {
 	ETH_TYPE_NONE,
 	ETH_TYPE_IP,
-	ETH_TYPE_ARP,
 	ETH_TYPE_REVARP,
 	ETH_TYPE_VLAN,
 	ETH_TYPE_EAP,
@@ -46,6 +42,7 @@ enum {
 	ETH_TYPE_LAST,
 
 	IP_TYPE_NONE,
+	IP_TYPE_ARP,
 	IP_TYPE_ICMP,
 	IP_TYPE_TCP,
 	IP_TYPE_UDP,
@@ -112,10 +109,10 @@ typedef struct proto_nbname {
 #define nbname_getmem()	((struct proto_nbname *) (malloc(sizeof(struct proto_nbname))))
 
 typedef struct proto_cdp {
-	uint8_t did[16];
-	uint8_t port[10];
-	uint8_t ver[6];
-	uint8_t plat[16];
+	uint8_t did[17];
+	uint8_t port[11];
+	uint8_t ver[7];
+	uint8_t plat[17];
 } proto_cdp;
 #define cdp_getmem()	((struct proto_cdp *) (malloc(sizeof(struct proto_cdp))))
 
@@ -139,8 +136,6 @@ typedef struct proto_dhcp {
 #define wifi_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_WIFI)
 
 extern struct list list_ether, list_ip, list_wifi;
-
-unsigned node_set_info(const struct shell_exchange *ex, const uint32_t time, int node_type);
 
 #endif
 
