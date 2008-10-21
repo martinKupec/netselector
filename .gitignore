@@ -1,2 +1,5 @@
 *.o
-netscout
+/netscout/netscout
+/netsummoner/netsummoner
+.deps/
+.objs/
