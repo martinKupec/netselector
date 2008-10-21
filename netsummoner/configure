@@ -1,23 +1,23 @@
 #comments
 
 network "home" 100 {
-	wifi mac "01:01:01:01:01:01" 50
+	wifi mac 01:01:01:01:01:01 50
 	wifi essid "home" 50
-	stp root "80:01:01:01:01:01:01:01" 100
-	gateway	ip "1.1.1.1" mac "01:01:01;01:01:01" 50
-	dhcps mac "01:01:01:01:01:01" 50
+	stp root 80:01:01:01:01:01:01:01 100
+	gateway	ip 1.1.1.1 mac 01:01:01:01:01:01 50
+	dhcps mac 01:01:01:01:01:01 50
 	nbns name "WINDOWS" 50
 }
 
 network "school" 100 {
-	eap mac "01:01:01:01:01:01" 100
-	dns ip "1.1.1.1" 50
-	wlccp mac "01:01:01:01:01:01" 100
+	eap mac 01:01:01:01:01:01 100
+	dns ip 1.1.1.1 50
+	wlccp mac 01:01:01:01:01:01 100
 	cdp id "cisco" 100
 }
 
 network "generic-dhcp" 1 {
-	dhcps not mac "01:01:01:01:01:01" 50
+	dhcps not mac 01:01:01:01:01:01 50
 }
 
 action "home" {
