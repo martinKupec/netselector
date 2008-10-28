@@ -4,7 +4,7 @@ all: dirs netsummoner
 CC := gcc
 LEX := flex
 YACC := bison
-YFLAGS := -d
+YFLAGS := -d -t -r state,look-ahead,itemset -v -g
 C_FILES := $(shell find -iname '*.c' | sort | sed -e 's/^\.\///')
 H_FILES := $(shell find -iname '*.h' | sort | sed -e 's/^\.\///')
 LEX_FILES := $(shell find -iname '*.lex' | sort | sed -e 's/^\.\///')
@@ -38,7 +38,7 @@ netsummoner: $(O_FILES)
 	$(CC) $(LDFLAGS) $(O_FILES) -o $@
 
 clean:
-	rm -fr .deps .objs core cscope.out netsumonner configuration.yy.* configuration.tab.*
+	rm -fr .deps .objs core cscope.out netsumonner configuration.yy.* configuration.tab.* configuration.output configuration.vcg
 
 tags: $(C_FILES) $(H_FILES) Makefile
 	exuberant-ctags --c++-kinds=+p --fields=+iaS --extra=+q -I $(C_FILES) $(H_FILES) || true

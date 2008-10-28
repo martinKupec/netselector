@@ -2,7 +2,7 @@
 #define YY_NO_UNPUT 1
 #include "configuration.tab.h"
 #include <stdlib.h>
-#define YY_USER_ACTION yylval.str = yytext;
+#define YY_USER_ACTION yylloc.first_line = yylineno;
 %}
 
 %option batch
@@ -37,14 +37,14 @@
 "on"			{ return ON; }
 "match"			{ return MATCH; }
 "down"			{ return DOWN; }
-([[:digit:]]+\.){3}[[:digit:]]+	{ return VAL_IP; }
-([a-fA-F0-9]+:)+[a-fA-F0-9]+	{ return VAL_MAC; }
+([[:digit:]]+\.){3}[[:digit:]]+	{ yylval.str = strdup(yytext); return VAL_IP; }
+([a-fA-F0-9]+:)+[a-fA-F0-9]+	{ yylval.str = strdup(yytext); return VAL_MAC; }
 [[:digit:]]+	{ yylval.num = atoi(yytext); return VAL_NUM; }
-\"[[:alnum:]_/\.-]*\"	{ return VAL_STR; }
+\"[[:alnum:]_/\.-]*\"	{ yylval.str = strdup(yytext); return VAL_STR; }
 "{"|"}"				{ return yytext[0]; }
-#.*			/* Comments falls througth */
+#[^\n]*			/* Comments falls througth */
 \n|\ |\t	/* New lines and such falls througth */
-.		{ printf("Not token \"%s\"\n", yytext); return -1; }
+.		{ return -2; }
 
 %%
 
