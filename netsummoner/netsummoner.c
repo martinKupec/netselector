@@ -13,6 +13,7 @@ static void daemonize(void) {
 
 int main(int argc, char **argv) {
 	
+	list_init(&list_network);
 	daemonize();
 	yyparse();
 	return 0;
