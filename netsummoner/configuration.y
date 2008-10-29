@@ -1,19 +1,15 @@
 %{
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "netsummoner.h"
 
 int yylex(void);
-extern char const *yytext;
 void yyerror (char const *err);
+void make_rule_ret(struct rule_ret *rule, unsigned count, ...);
+
 unsigned rule_count;
-
-struct rule_ret {
-	struct rule *items;
-	unsigned count;
-	int type;
-};
-
+extern char const *yytext;
 %}
 
 %locations
@@ -25,20 +21,24 @@ struct rule_ret {
 	struct action *action;
 	struct assembly *assembly;
 	struct rule_ret rule_ret;
+	struct rule item;
+	struct rule_set *rule_set;
 }
 
 %token <num> VAL_NUM
 %token <str> VAL_STR VAL_IP VAL_MAC
-%token <str> NETWORK ACTION ASSEMBLY
-%token <str> WIFI STP GATEWAY DHCPS NBNS EAP WLCCP CDP DNS
-%token <str> MAC ESSID NAME IP ROOT 
-%token <str> DHCP ID EXECUTE NOT USE MATCH DOWN ON
 
-%type <rule_set> nstmt
-%type <rule_ret> wifi
+%token <num> NETWORK ACTION ASSEMBLY
+%token <num> WIFI STP GATEWAY DHCPS NBNS EAP WLCCP CDP DNS
+%token <num> MAC ESSID NAME IP ROOT 
+%token <num> DHCP ID EXECUTE NOT USE MATCH DOWN ON
+
+%type <rule_set> nstmt nstmtn
+%type <rule_ret> wifi stp gateway dhcps nbns eap wlccp cdp dns
 %type <network> network
 %type <action> action
 %type <assembly> assembly
+%type <item> ip mac essid
 
 %%
 
@@ -55,65 +55,67 @@ network: NETWORK VAL_STR VAL_NUM { rule_count = 0; } '{' nstmt '}' { $$ = new_ne
 	;
 
 nstmt: /* empty */ { $$ = malloc(sizeof(struct rule) * rule_count); rule_count--; }
-	| WIFI wifi nstmtn
-	| STP stp nstmtn
-	| GATEWAY gateway nstmtn
-	| DHCPS dhcps nstmtn
-	| NBNS nbns nstmtn
-	| EAP eap nstmtn
-	| WLCCP wlccp nstmtn
-	| CDP cdp nstmtn
-	| DNS dns nstmtn
-	;
-nstmtn: VAL_NUM { rule_count++; } nstmt { $3[rule_count].score = $1; $[rule_count].matched = 0;
-			$3[rule_count].type = $0.type; $3[rule_count].rules = $0.items; $3[rule_count].count = $0.count; rule_count--; }
+	| WIFI wifi nstmtn { $$ = $3; }
+	| STP stp nstmtn { $$ = $3; }
+	| GATEWAY gateway nstmtn { $$ = $3; }
+	| DHCPS dhcps nstmtn { $$ = $3; }
+	| NBNS nbns nstmtn { $$ = $3; }
+	| EAP eap nstmtn { $$ = $3; }
+	| WLCCP wlccp nstmtn { $$ = $3; }
+	| CDP cdp nstmtn { $$ = $3; }
+	| DNS dns nstmtn { $$ = $3; }
 	;
 
-wifi: mac { $$.count = 1; $$.items = malloc(sizeof(struct rule)); $$.items.type = $1.type; $$.items.data = $1.data; }
-	| essid { $$.count = 1; $$.items = malloc(sizeof(struct rule)); $$.items.type = $1.type; $$.items.data = $1.data; }
-	| mac essid
-	| essid mac
+nstmtn: VAL_NUM { rule_count++; } nstmt { $3[rule_count].score = $1; $3[rule_count].matched = 0;
+			$3[rule_count].type = $<num>-1; $3[rule_count].items = $<rule_ret>0.items;
+			$3[rule_count].count = $<rule_ret>0.count; rule_count--; $$ = $3; }
 	;
 
-stp: ROOT VAL_MAC
+wifi: mac { make_rule_ret(&$$, 1, &$1); }
+	| essid  { make_rule_ret(&$$, 1, &$1); }
+	| mac essid { make_rule_ret(&$$, 2, &$1, &$2); }
+	| essid mac { make_rule_ret(&$$, 2, &$1, &$2); }
 	;
 
-gateway: ip
-	|    mac
-	|    ip mac
-	|	 mac ip
+stp: ROOT VAL_MAC { struct rule r = { .type = $1, .data = $2 }; make_rule_ret(&$$, 1, &r); }
 	;
 
-dhcps: ip
-	|  mac
-	|  ip mac
-	|  mac ip
+gateway: ip { make_rule_ret(&$$, 1, &$1); }
+	|  mac { make_rule_ret(&$$, 1, &$1); }
+	|  ip mac { make_rule_ret(&$$, 2, &$1, &$2); }
+	|  mac ip { make_rule_ret(&$$, 2, &$1, &$2); }
 	;
 
-nbns: NAME VAL_STR
+dhcps: ip { make_rule_ret(&$$, 1, &$1); }
+	|  mac { make_rule_ret(&$$, 1, &$1); }
+	|  ip mac { make_rule_ret(&$$, 2, &$1, &$2); }
+	|  mac ip { make_rule_ret(&$$, 2, &$1, &$2); }
 	;
 
-eap: mac
+nbns: NAME VAL_STR { struct rule r = { .type = $1, .data = $2 }; make_rule_ret(&$$, 1, &r); }
 	;
 
-wlccp: mac
+eap: mac { make_rule_ret(&$$, 1, &$1); }
 	;
 
-cdp: ID VAL_STR
+wlccp: mac { make_rule_ret(&$$, 1, &$1); }
 	;
 
-dns: ip
+cdp: ID VAL_STR { struct rule r = { .type = $1, .data = $2 }; make_rule_ret(&$$, 1, &r); }
 	;
 
-mac: MAC VAL_MAC
-	| NOT MAC VAL_MAC
-	;
-ip: IP VAL_IP
-	| NOT IP VAL_IP
+dns: ip { make_rule_ret(&$$, 1, &$1); }
 	;
 
-essid: ESSID VAL_STR
-	| NOT ESSID VAL_STR
+mac: MAC VAL_MAC { $$.type = $1; $$.data = $2; }
+	| NOT MAC VAL_MAC { $$.type = -$2; $$.data = $3; }
+	;
+ip: IP VAL_IP { $$.type = $1; $$.data = $2; }
+	| NOT IP VAL_IP { $$.type = -$2; $$.data = $3; }
+	;
+
+essid: ESSID VAL_STR { $$.type = $1; $$.data = $2; }
+	| NOT ESSID VAL_STR { $$.type = -$2; $$.data = $3; }
 	;
 
 action: ACTION VAL_STR '{' astmt '}'
@@ -142,3 +144,20 @@ void yyerror (char const *err) {
 	fprintf(stderr, "Unexpected symbol %s at line %d\n", yytext, yylloc.first_line);
 }
 
+void make_rule_ret(struct rule_ret *rule, unsigned count, ...) {
+	va_list v;
+	struct rule *i;
+
+	va_start(v, count);
+
+	rule->count = count;
+	rule->items = malloc(sizeof(struct rule) * count);
+	while(count--) {
+		i = va_arg(v, struct rule *);
+		rule->items[count].type = i->type;
+		rule->items[count].data = i->data;
+		rule->items[count].matched = 0;
+	}
+
+	va_end(v);
+}

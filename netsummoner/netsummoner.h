@@ -10,6 +10,11 @@ struct rule {
 	void *data;
 };
 
+struct rule_ret {
+	struct rule *items;
+	unsigned count;
+};
+
 struct rule_set {
 	bool matched;
 	int type;
