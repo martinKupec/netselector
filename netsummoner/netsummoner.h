@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "list.h"
+
+extern struct list list_network;
+
 struct rule {
 	bool matched;
 	int type;

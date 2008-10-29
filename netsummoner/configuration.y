@@ -3,23 +3,23 @@
 #include <stdarg.h>
 
 #include "netsummoner.h"
+#include "list.h"
 
 int yylex(void);
 void yyerror (char const *err);
 void make_rule_ret(struct rule_ret *rule, unsigned count, ...);
+void new_network(char *name, unsigned target_score, struct rule_set *rules);
 
-unsigned rule_count;
+unsigned rule_count, rule_count_max;
 extern char const *yytext;
 %}
 
 %locations
 
 %union {
-	char const *str;
+	char *str;
 	int num;
-	struct network *network;
-	struct action *action;
-	struct assembly *assembly;
+
 	struct rule_ret rule_ret;
 	struct rule item;
 	struct rule_set *rule_set;
@@ -35,9 +35,6 @@ extern char const *yytext;
 
 %type <rule_set> nstmt nstmtn
 %type <rule_ret> wifi stp gateway dhcps nbns eap wlccp cdp dns
-%type <network> network
-%type <action> action
-%type <assembly> assembly
 %type <item> ip mac essid
 
 %%
@@ -46,15 +43,15 @@ config: /* empty */
 	| decl config
 	;
 
-decl: network { list_network_add($1); }
-	| action { list_action_add($1); }
-	| assembly { list_assembly_add($1); }
+decl: network
+	| action
+	| assembly
 	;
 
-network: NETWORK VAL_STR VAL_NUM { rule_count = 0; } '{' nstmt '}' { $$ = new_network($2, $3, $6); }
+network: NETWORK VAL_STR VAL_NUM { rule_count = 0; } '{' nstmt '}' { new_network($2, $3, $6); }
 	;
 
-nstmt: /* empty */ { $$ = malloc(sizeof(struct rule) * rule_count); rule_count--; }
+nstmt: /* empty */ { $$ = malloc(sizeof(struct rule) * rule_count); rule_count_max = rule_count--; }
 	| WIFI wifi nstmtn { $$ = $3; }
 	| STP stp nstmtn { $$ = $3; }
 	| GATEWAY gateway nstmtn { $$ = $3; }
@@ -158,6 +155,15 @@ void make_rule_ret(struct rule_ret *rule, unsigned count, ...) {
 		rule->items[count].data = i->data;
 		rule->items[count].matched = 0;
 	}
-
 	va_end(v);
+}
+
+void new_network(char *name, unsigned target_score, struct rule_set *rules) {
+	struct network *net;
+	
+	net = list_network_add(name);
+	net->rules = rules;
+	net->name = name;
+	net->target_score = target_score;
+	net->count = rule_count_max;
 }
