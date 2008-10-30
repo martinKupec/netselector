@@ -6,8 +6,6 @@
 
 #include "list.h"
 
-extern struct list list_network;
-
 struct rule {
 	bool matched;
 	int type;
@@ -20,7 +18,7 @@ struct rule_ret {
 };
 
 struct rule_set {
-	bool matched;
+	unsigned matched;
 	int type;
 	unsigned score;
 	unsigned count;
@@ -33,5 +31,24 @@ struct network {
 	char *name;
 	unsigned target_score;
 };
+
+struct action_plan {
+	int type;
+	void *data;
+};
+
+struct action {
+	char *name;
+	unsigned count;
+	struct action_plan *actions;
+};
+
+struct assembly {
+	int type;
+	char *net_name;
+	char *act_name;
+}
+
+extern struct list list_network, list_action, list_assembly;
 
 #endif
