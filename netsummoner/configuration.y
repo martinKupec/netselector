@@ -125,9 +125,9 @@ essid: ESSID VAL_STR { $$.type = $1; $$.data = $2; }
 action: ACTION VAL_STR { counter = 0; } '{' astmt '}' { new_action($2, $5); }
 	;
 
-astmt: /* empty*/ { $$ = malloc(sizeof(struct action_plan) * counter); counter_max = counter--; }
-	| execute { counter++; } astmt { $3[counter].type = $1.type; $3[counter--].data = $1.data; }
-	| use { counter++; } astmt
+astmt: /* empty */ { $$ = malloc(sizeof(struct action_plan) * counter); counter_max = counter--; }
+	| execute { counter++; } astmt { $$ = $3; $3[counter].type = $1.type; $3[counter].data = $1.data; counter--; }
+	| use { counter++; } astmt { $$ = $3; $3[counter].type = $1.type; $3[counter].data = $1.data; counter--; }
 	;
 
 execute: EXECUTE VAL_STR { $$.type = $1; $$.data = $2; }
@@ -188,10 +188,10 @@ static inline void new_action(char *name, struct action_plan *plan) {
 }
 
 static inline void new_assembly(char *net_n, char *act_n, int type) {
-	struct action *act;
+	struct assembly *asme;
 
-	act = list_assembly_add();
-	act->net_name = net_n;
-	act->act_name = act_n;
-	act->type = type;
+	asme = list_assembly_add();
+	asme->net_name = net_n;
+	asme->act_name = act_n;
+	asme->type = type;
 }
