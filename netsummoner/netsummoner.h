@@ -1,5 +1,5 @@
-#ifndef __NETSUMMONER_H__
-#define __NETSUMMONER_H__
+#ifndef __NETSUMMONER_NETSUMMONER_H__
+#define __NETSUMMONER_NETSUMMONER_H__
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -47,7 +47,7 @@ struct assembly {
 	int type;
 	char *net_name;
 	char *act_name;
-}
+};
 
 extern struct list list_network, list_action, list_assembly;
 
