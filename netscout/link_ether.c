@@ -33,11 +33,11 @@ unsigned link_hndl_ether(const uint8_t *pkt, shell *sh) {
 	const uint8_t *ether_payload = pkt + sizeof(struct ether_header);
 	unsigned score = 0;
 	
-	sh->from.lower_node = list_ether_add_uniq(hdr->ether_shost);;
+	sh->from.lower_node = get_node_ether(hdr->ether_shost);;
 	if(((struct stat_ether *) sh->from.lower_node)->count == 0) {
 		score += SCORE_ETHER;
 	}
-	sh->to.lower_node = list_ether_add_uniq(hdr->ether_dhost);
+	sh->to.lower_node = get_node_ether(hdr->ether_dhost);
 	if(((struct stat_ether *) sh->to.lower_node)->count == 0) {
 		score += SCORE_ETHER;
 	}

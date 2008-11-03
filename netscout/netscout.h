@@ -135,6 +135,10 @@ typedef struct proto_dhcp {
 #define ip_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_IP)
 #define wifi_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_WIFI)
 
+struct stat_ip *get_node_ip(const uint32_t ip);
+struct stat_ether *get_node_ether(const uint8_t *mac);
+struct stat_wifi *get_node_wifi(const uint8_t *mac);
+
 extern struct list list_ether, list_ip, list_wifi;
 
 #endif

@@ -23,6 +23,18 @@ static volatile int signal_stop = 1;
 static uint64_t start_time;
 static unsigned score = 0;
 
+struct stat_ip *get_node_ip(const uint32_t ip) {
+	return list_ip_add_uniq(ip);
+}
+
+struct stat_ether *get_node_ether(const uint8_t *mac) {
+	return list_ether_add_uniq(mac);
+}
+
+struct stat_wifi *get_node_wifi(const uint8_t *mac) {
+	return list_wifi_add_uniq(mac);
+}
+
 /*
  * Sets datalink handler for datalink type
  */

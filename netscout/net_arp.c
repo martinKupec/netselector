@@ -18,7 +18,7 @@
  */
 static unsigned net_arp_ether(const uint8_t *pkt, shell *sh) {
 	const struct ether_arp *arp = (const struct ether_arp *) pkt;
-	struct stat_ip *node = list_ip_add_uniq(arp->arp_spa);
+	struct stat_ip *node = get_node_ip(*((uint32_t *) arp->arp_spa));
 	void *lower_node = sh->from.lower_node;
 	unsigned score = 0;
 

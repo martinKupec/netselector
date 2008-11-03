@@ -34,7 +34,7 @@ int wifi_scan(const uint64_t start_time) {
 	gettimeofday(&time, NULL);
 	now = (uint32_t) (time.tv_sec * 1000 + (time.tv_usec / 1000)) - start_time;
 	for(iter = wsh.result; iter != NULL; iter = tmp) {
-		node = list_wifi_add_uniq(iter->ap_addr.sa_data);
+		node = get_node_wifi((uint8_t *) iter->ap_addr.sa_data);
 		if(node->quality == NULL) {
 			memcpy(node->essid, iter->b.essid, 16);
 			node->quality = (uint8_t *) malloc(sizeof(uint8_t) * 16);
