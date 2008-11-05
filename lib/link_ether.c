@@ -9,12 +9,10 @@
 #include <linux/if.h>
 #include <linux/llc.h>
 
-#include "netscout.h"
-#include "network.h"
-#include "link.h"
-#include "list.h"
-#include "score.h"
-#include "node_info.h"
+#include "lib/netselector.h"
+#include "lib/network.h"
+#include "lib/link.h"
+#include "lib/score.h"
 
 struct llc_header {
 	uint8_t dsap;

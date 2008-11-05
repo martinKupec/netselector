@@ -3,9 +3,8 @@
 #include <string.h>
 #include <netinet/in.h>
 
-#include "netscout.h"
-#include "link.h"
-#include "list.h"
+#include "lib/netselector.h"
+#include "lib/link.h"
 
 struct stp_pkt {
 	uint16_t protocol;

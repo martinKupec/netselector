@@ -9,12 +9,15 @@
 #include <sys/select.h>
 
 #include "netscout.h"
-#include "link.h"
-#include "list.h"
-#include "wifi.h"
 #include "statistics.h"
-#include "dhcpc.h"
-#include "score.h"
+#include "lib/netselector.h"
+#include "lib/score.h"
+#include "lib/list.h"
+#include "lib/wifi.h"
+#include "lib/dhcpc.h"
+#include "lib/link.h"
+
+typedef unsigned (*hndl_p)(const uint8_t *pkt, shell *sh);
 
 struct list list_ether, list_ip, list_wifi;
 
@@ -23,15 +26,19 @@ static volatile int signal_stop = 1;
 static uint64_t start_time;
 static unsigned score = 0;
 
-struct stat_ip *get_node_ip(const uint32_t ip) {
+#define list_ether_add_uniq(uniq) ((struct stat_ether *) (list_add_uniq(&list_ether, sizeof(struct stat_ether), (uint8_t *) uniq, 6) ))
+#define list_ip_add_uniq(uniq) ((struct stat_ip *) (list_add_uniq(&list_ip, sizeof(struct stat_ip), (uint8_t *) &uniq, 4) ))
+#define list_wifi_add_uniq(uniq) ((struct stat_wifi *) (list_add_uniq(&list_wifi, sizeof(struct stat_wifi), (uint8_t *) uniq, 6)))
+
+static struct stat_ip *get_node_ip(const uint32_t ip) {
 	return list_ip_add_uniq(ip);
 }
 
-struct stat_ether *get_node_ether(const uint8_t *mac) {
+static struct stat_ether *get_node_ether(const uint8_t *mac) {
 	return list_ether_add_uniq(mac);
 }
 
-struct stat_wifi *get_node_wifi(const uint8_t *mac) {
+static struct stat_wifi *get_node_wifi(const uint8_t *mac) {
 	return list_wifi_add_uniq(mac);
 }
 

@@ -7,13 +7,11 @@
 #include <netinet/udp.h>
 #include <netinet/in.h>
 
-#include "netscout.h"
-#include "network.h"
-#include "list.h"
-#include "link.h"
-#include "dhcpc.h"
-#include "score.h"
-#include "node_info.h"
+#include "lib/netselector.h"
+#include "lib/network.h"
+#include "lib/link.h"
+#include "lib/dhcpc.h"
+#include "lib/score.h"
 
 #define UDP_PORT_NBNS	137
 #define UDP_PORT_DHCPS	68

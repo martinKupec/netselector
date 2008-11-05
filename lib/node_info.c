@@ -15,17 +15,24 @@ struct pseudo_node {
 };
 
 static unsigned on_eth(const uint8_t *mac, unsigned space) {
-	while(space < SPACE_FIRST) {
-		space++;
-		putchar(' ');
-	}
-	return printf("on ETH %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2],
+	if(show_received) {
+		while(space < SPACE_FIRST) {
+			space++;
+			putchar(' ');
+		}
+		return printf("on ETH %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2],
 				mac[3], mac[4], mac[5]);
+	} else {
+		return 0;
+	}
 }
 
 static void verdict(unsigned space, const char *format, ...) {
 	va_list va;
-
+	
+	if(!show_received) {
+		return;
+	}
 	while(space < (SPACE_SECOND - SPACE_FIRST)) {
 		space++;
 		putchar(' ');
@@ -75,10 +82,14 @@ static unsigned info_data_score(const void *node, const struct info_field *info,
 
 	switch(info->type) {
 	case ETH_TYPE_IP:
-		space = printf("IP %d.%d.%d.%d", IPQUAD(((const struct stat_ip *)info->data)->ip));
+		if(show_received) {
+			space = printf("IP %d.%d.%d.%d", IPQUAD(((const struct stat_ip *)info->data)->ip));
+		}
 		space = on_eth(neth->mac, space);
 		space = is_router(neth->info, info - neth->info, neth->count, space);
-		putchar('\n');
+		if(show_received) {
+			putchar('\n');
+		}
 		return space; // IP Added when adding to list, adding just score for gateway
 	case ETH_TYPE_CDP:
 		space = statistics_cdp(info, 1);
@@ -100,7 +111,9 @@ static unsigned info_data_score(const void *node, const struct info_field *info,
 	case IP_TYPE_ARP:
 		return SCORE_ARP;
 	case IP_TYPE_DNSS:
-		space = printf("DNS %d.%d.%d.%d", IPQUAD(nip->ip));
+		if(show_received) {
+			space = printf("DNS %d.%d.%d.%d", IPQUAD(nip->ip));
+		}
 		space = on_eth(nip->ether->mac, space);
 		verdict(space, "DNS Server\n");
 		return SCORE_DNSS;
@@ -115,12 +128,16 @@ static unsigned info_data_score(const void *node, const struct info_field *info,
 	case IP_TYPE_UNKNOWN:
 		return SCORE_UNKNOWN;
 	case ETH_TYPE_WLCCP:
-		space = printf("WLCCP");
+		if(show_received) {
+			space = printf("WLCCP");
+		}
 		space = on_eth(neth->mac, space);
 		verdict(space, "Cisco Router\n");
 		return SCORE_WLCCP;
 	case ETH_TYPE_EAP:
-		space = printf("EAP");
+		if(show_received) {
+			space = printf("EAP");
+		}
 		space = on_eth(neth->mac, space);
 		verdict(space, "EAP Server\n");
 		return SCORE_EAP;

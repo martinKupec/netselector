@@ -1,7 +1,9 @@
-#ifndef __NETSCOUT_NETWORK_H__
-#define __NETSCOUT_NETWORK_H__
+#ifndef __LIB_NETWORK_H__
+#define __LIB_NETWORK_H__
 
 #include <stdint.h>
+
+#include "lib/netselector.h"
 
 unsigned net_hndl_arp(const uint8_t *pkt, shell *sh);
 unsigned net_hndl_stp(const uint8_t *pkt, shell *sh);

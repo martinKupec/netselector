@@ -5,10 +5,9 @@
 
 #include <netinet/in.h>
 
-#include "netscout.h"
-#include "network.h"
-#include "list.h"
-#include "dhcpc.h"
+#include "lib/netselector.h"
+#include "lib/network.h"
+#include "lib/dhcpc.h"
 
 static void sprint_nbname(char *buf, const unsigned char *name) {
 	int i;

@@ -1,7 +1,7 @@
 #ifndef __NETSCOUT_STATISTICS_H__
 #define __NETSCOUT_STATISTICS_H__
 
-#include "netscout.h"
+#include "lib/netselector.h"
 
 #define SHOW_TIME(time) time / 1000, time % 1000
 #define IPQUAD(x) ((unsigned char *)&(x))[0], ((unsigned char *)&(x))[1], ((unsigned char *)&(x))[2], ((unsigned char*)&(x))[3]

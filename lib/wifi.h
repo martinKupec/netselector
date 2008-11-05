@@ -1,5 +1,5 @@
-#ifndef __NETSCOUT_WIFI_H__
-#define __NETSCOUT_WIFI_H__
+#ifndef __LIB_WIFI_H__
+#define __LIB_WIFI_H__
 
 #include <stdint.h>
 

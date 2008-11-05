@@ -5,9 +5,8 @@
 #include <netinet/in.h>
 #include <net/ethernet.h>
 
-#include "netscout.h"
-#include "link.h"
-#include "list.h"
+#include "lib/netselector.h"
+#include "lib/link.h"
 
 struct llc_snap_header {
 	uint8_t dsap;

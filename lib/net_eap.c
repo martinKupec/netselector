@@ -4,9 +4,8 @@
 
 #include <netinet/in.h>
 
-#include "netscout.h"
-#include "link.h"
-#include "list.h"
+#include "lib/netselector.h"
+#include "lib/link.h"
 
 struct eap_pkt {
 	//802.1X

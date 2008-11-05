@@ -11,10 +11,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "netscout.h"
-#include "dhcpc.h"
-#include "list.h"
-#include "network.h"
+#include "lib/netselector.h"
+#include "lib/dhcpc.h"
+#include "lib/list.h"
+#include "lib/network.h"
 
 #define DHCP_OPTIONS_SIZE 308 /* 312 - cookie */
 struct dhcp_packet {

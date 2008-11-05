@@ -3,11 +3,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "statistics.h"
 #include "netscout.h"
-#include "network.h"
-#include "link.h"
-#include "list.h"
+#include "statistics.h"
+#include "lib/netselector.h"
+#include "lib/network.h"
+#include "lib/link.h"
+#include "lib/list.h"
 
 #define SPACE_SIZE	60
 

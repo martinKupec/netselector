@@ -3,9 +3,8 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
-#include "netscout.h"
-#include "wifi.h"
-#include "list.h"
+#include "lib/netselector.h"
+#include "lib/wifi.h"
 
 static int skfd, we_ver;
 static char *wifidevice;

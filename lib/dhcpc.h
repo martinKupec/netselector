@@ -1,5 +1,5 @@
-#ifndef __NETSCOUT_DHCPC_H__
-#define __NETSCOUT_DHCPC_H__
+#ifndef __LIB_DHCPC_H__
+#define __LIB_DHCPC_H__
 
 #include <pcap.h>
 #include <stdint.h>

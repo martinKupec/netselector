@@ -1,5 +1,5 @@
-#ifndef __NETSCOUT_SCORE_H__
-#define __NETSCOUT_SCORE_H__
+#ifndef __LIB_SCORE_H__
+#define __LIB_SCORE_H__
 
 enum {
 	SCORE_TARGET_DEFAULT = 100,
