@@ -6,7 +6,7 @@
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
 
-#include "netscout.h"
+#include "netselector.h"
 #include "network.h"
 #include "link.h"
 #include "list.h"

@@ -1,6 +1,14 @@
+#include <lib/netselector.h>
 
-struct stat_ip *(* get_node_ip)(const uint32_t ip);
-struct stat_ether *(* get_node_ether)(const uint8_t *mac);
-struct stat_wifi *(* get_node_wifi)(const uint8_t *mac);
+callback_ip get_node_ip;
+callback_ether get_node_ether;
+callback_wifi get_node_wifi;
 
 bool show_received;
+
+void libnetselector_init(callback_ip ip, callback_ether ether, callback_wifi wifi, bool show) {
+	get_node_ip = ip;
+	get_node_ether = ether;
+	get_node_wifi = wifi;
+	show_received = show;
+}

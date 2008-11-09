@@ -1,12 +1,13 @@
-CLANG = -std=gnu99
-COPT = -O2 -fstrict-aliasing -finline-limit=2000
-CWARNS = -Wall -W -Wno-parentheses -Wstrict-prototypes -Wmissing-prototypes -Winline
+CC := gcc
+CLANG := -std=gnu99
+COPT := -O2 -fstrict-aliasing -finline-limit=2000
+CWARNS := -Wall -W -Wno-parentheses -Wstrict-prototypes -Wmissing-prototypes -Winline
 LOPT =
 LIBS =
-CDEBUG = -DDEBUG -ggdb
+CDEBUG := -DDEBUG -ggdb
 
-CFLAGS = $(CLANG) $(COPT) $(CDEBUG) $(CWARNS) -I.
-LDFLAGS = $(LOPT)
+CFLAGS := $(CLANG) $(COPT) $(CDEBUG) $(CWARNS) -I.
+LDFLAGS := $(LOPT)
 
 .PHONY: all dust clean distclean programs dirtree
 
@@ -47,6 +48,9 @@ depend: force
 force:
 
 # Implicit rules
+
+%.a:
+	ar rcs $@ $?
 
 %.dir-stamp:
 	mkdir -p $(@D) && touch $@

@@ -6,6 +6,7 @@
 #include <net/ethernet.h>
 
 #include "lib/netselector.h"
+#include "lib/network.h"
 #include "lib/link.h"
 
 struct llc_snap_header {

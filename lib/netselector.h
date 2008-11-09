@@ -18,6 +18,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define IPQUAD(x) ((unsigned char *)&(x))[0], ((unsigned char *)&(x))[1], ((unsigned char *)&(x))[2], ((unsigned char*)&(x))[3]
+
 enum {
 	NODE_TYPE_ETH,
 	NODE_TYPE_IP,
@@ -132,6 +134,17 @@ typedef struct proto_dhcp {
 #define ether_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_ETH)
 #define ip_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_IP)
 #define wifi_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_WIFI)
+
+typedef struct stat_ip *(* callback_ip)(const uint32_t);
+typedef struct stat_ether *(* callback_ether)(const uint8_t *);
+typedef struct stat_wifi *(* callback_wifi)(const uint8_t *);
+
+extern callback_ip get_node_ip;
+extern callback_ether get_node_ether;
+extern callback_wifi get_node_wifi;
+extern bool show_received;
+
+void libnetselector_init(callback_ip ip, callback_ether ether, callback_wifi wifi, bool show);
 
 #endif
 

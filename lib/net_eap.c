@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 
 #include "lib/netselector.h"
+#include "lib/network.h"
 #include "lib/link.h"
 
 struct eap_pkt {

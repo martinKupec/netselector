@@ -12,6 +12,7 @@
 #include "lib/link.h"
 #include "lib/dhcpc.h"
 #include "lib/score.h"
+#include "lib/node_info.h"
 
 #define UDP_PORT_NBNS	137
 #define UDP_PORT_DHCPS	68

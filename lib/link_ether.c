@@ -13,6 +13,7 @@
 #include "lib/network.h"
 #include "lib/link.h"
 #include "lib/score.h"
+#include "lib/node_info.h"
 
 struct llc_header {
 	uint8_t dsap;

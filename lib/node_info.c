@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "netscout.h"
-#include "statistics.h"
-#include "list.h"
-#include "score.h"
+#include "lib/netselector.h"
+#include "lib/list.h"
+#include "lib/score.h"
 
 #define SPACE_FIRST		40
 #define SPACE_SECOND	80
