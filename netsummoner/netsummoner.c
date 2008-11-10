@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #include "netsummoner.h"
-#include "list.h"
+#include "lib/list.h"
 
 struct list list_network, list_action, list_assembly;
 

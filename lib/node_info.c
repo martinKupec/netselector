@@ -2,16 +2,98 @@
 #include <stdarg.h>
 
 #include "lib/netselector.h"
+#include "lib/node_info.h"
 #include "lib/list.h"
 #include "lib/score.h"
 
-#define SPACE_FIRST		40
-#define SPACE_SECOND	80
+#define SHOW_TIME(time) time / 1000, time % 1000
+
+#define SPACE_SIZE	60
+#define SPACE_FIRST	40
+#define SPACE_SECOND 80
 
 struct pseudo_node {
 	unsigned count;
 	struct info_field *info;
 };
+
+void show_time(const struct info_field *info, unsigned space) {
+
+	while(space < SPACE_SIZE) {
+		putchar(' ');
+		space++;
+	}
+	printf("First %03u.%03u ", SHOW_TIME(info->time_first));
+	printf("Last %03u.%03u ", SHOW_TIME(info->time_last));
+	printf("Count %d\n", info->count);
+}
+
+void show_nbns(const struct info_field *info) {
+	const struct proto_nbname *nbname = info->data;
+	char buf[17];
+	unsigned space;
+
+	memcpy(buf, nbname->name, 16);
+	buf[16] = '\0';
+	space = printf("        Ask's NBName %s", buf);
+	show_time(info, space);
+}
+
+unsigned show_dhcps(const struct info_field *info, bool oneline) {
+	const struct proto_dhcp *dhcp = info->data;
+	unsigned space;
+
+	if(!oneline) {
+		printf("        ");
+	}
+	space = printf("DHCP %d.%d.%d.%d", IPQUAD(dhcp->server_IP));
+	if(oneline) {
+		return space;
+	} else {
+		show_time(info, space + 8);
+		printf("            Router %d.%d.%d.%d\n", IPQUAD(dhcp->router_IP));
+		printf("            DNS %d.%d.%d.%d %d.%d.%d.%d\n", IPQUAD(dhcp->dnsp), IPQUAD(dhcp->dnss));
+		printf("            Mask %d.%d.%d.%d\n", IPQUAD(dhcp->mask));
+		return 0;
+	}
+}
+
+unsigned show_stp(const struct info_field *info, bool oneline) {
+	const struct proto_stp *stp = info->data;
+	unsigned space;
+
+	if(!oneline) {
+
+		space = printf("    STP Bridge: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", stp->bridge[0],
+				stp->bridge[1], stp->bridge[2], stp->bridge[3], stp->bridge[4],
+				stp->bridge[5], stp->bridge[6], stp->bridge[7]);
+		show_time(info, space);
+		printf("        ");
+	}
+	space = printf("Root: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", stp->root[0],
+		stp->root[1], stp->root[2], stp->root[3], stp->root[4], stp->root[5],
+		stp->root[6], stp->root[7]);
+	if(!oneline) {
+		printf("\n        Port: %04X\n", stp->port);
+		return 0;
+	} else {
+		return space + printf(" Port:%04X", stp->port);
+	}
+}
+
+unsigned show_cdp(const struct info_field *info, bool oneline) {
+	const struct proto_cdp *cdp = info->data;
+	unsigned space = 0;
+
+	if(oneline) {
+		return printf("CDP %s Port %s", cdp->did, cdp->port);
+	} else {
+		space = printf("    CDP Device ID %s ", cdp->did);
+		show_time(info, space);
+		printf("        Port %s\n        Version %s\n        Platform %s\n", cdp->port, cdp->ver, cdp->plat);;
+	}
+	return 0;
+}
 
 static unsigned on_eth(const uint8_t *mac, unsigned space) {
 	if(show_received) {
@@ -74,7 +156,7 @@ static unsigned is_router(const struct info_field *info, unsigned pos, const uns
 /*
  * Returns score and prints info about new information 
  */
-static unsigned info_data_score(const void *node, const struct info_field *info, bool show) {
+static unsigned info_data_score(const void *node, const struct info_field *info) {
 	unsigned space = 0;
 	const struct stat_ether *neth = (struct stat_ether *)(node);
 	const struct stat_ip *nip = (struct stat_ip *)(node);
@@ -91,19 +173,19 @@ static unsigned info_data_score(const void *node, const struct info_field *info,
 		}
 		return space; // IP Added when adding to list, adding just score for gateway
 	case ETH_TYPE_CDP:
-		space = statistics_cdp(info, 1);
+		space = show_cdp(info, 1);
 		space = on_eth(neth->mac, space);
 		verdict(space, "Router\n");
 		return SCORE_CDP;
 	case ETH_TYPE_STP:
-		space = statistics_stp(info, 1);
+		space = show_stp(info, 1);
 		space = on_eth(neth->mac, space);
 		verdict(space, "Router\n");
 		return SCORE_STP;
 	case IP_TYPE_NBNS:
 		return SCORE_NBNS;
 	case IP_TYPE_DHCPS:
-		space = statistics_dhcps(info, 1);
+		space = show_dhcps(info, 1);
 		space = on_eth(nip->ether->mac, space);
 		verdict(space, "DHCP Server\n");
 		return SCORE_DHCPS;
@@ -224,14 +306,21 @@ static int info_cmp(const struct info_field *info, unsigned type, void *data, si
  */
 static unsigned node_info_find(const struct info_field *info, const unsigned count, const struct shell_exchange *ex, int *found) {
 	const size_t size = info_data_size(ex->higher_type);
-	int i = 0, j = count - 1, a, c = 1;
+	unsigned i = 0, j = count - 1, a;
+	int c = 1;
 
+	if(!count) {
+		return 0;
+	}
 	while(c && (i <= j)) {
 		a = (i + j) / 2;
 		c = info_cmp(info + a, ex->higher_type, ex->higher_data, size);
 		if(c < 0) {
 			i = a + 1;
 		} else if(c > 0) {
+			if(!a) {
+				return 0;
+			} 
 			j = a - 1;
 		} 
 	}
@@ -240,9 +329,6 @@ static unsigned node_info_find(const struct info_field *info, const unsigned cou
 			*found = 1;
 		}
 		return a;
-	}
-	if(j < 0) {
-		return 0;
 	}
 	if(i > (count - 1)) {
 		return count;
@@ -265,6 +351,9 @@ unsigned node_set_info(const struct shell_exchange *ex, const uint32_t time, con
 		break;
 	case NODE_TYPE_IP:
 		node = (struct pseudo_node *) &(((struct stat_ip *)(whole_node))->count);
+		break;
+	default:
+		node = NULL;
 		break;
 	}
 
@@ -299,5 +388,5 @@ unsigned node_set_info(const struct shell_exchange *ex, const uint32_t time, con
 	node->info[here].time_last = time;
 	node->info[here].count++;
 
-	return info_data_score(whole_node, node->info + here, 1);
+	return info_data_score(whole_node, node->info + here);
 }

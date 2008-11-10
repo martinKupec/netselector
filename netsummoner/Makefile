@@ -1,47 +1,10 @@
-.PHONY: all clean dirs
-all: dirs netsummoner
+DIRS += netsummoner
+PROGS += obj/netsummoner/netsummoner
+NSU_OBJS := $(patsubst %.c,%.o,$(shell find netsummoner/ -iname '*.c' | sort | sed -e 's/^netsummoner\///'))
+LEX_SRC := $(shell find netsummoner/ -iname '*.lex' | sort | sed -e 's/^netsummoner\///')
+BISON_SRC := $(shell find netsummoner/ -iname '*.y' | sort | sed -e 's/^netsummoner\///')
 
-CC := gcc
-LEX := flex
-YACC := bison
-YFLAGS := -d -t -r state,look-ahead,itemset -v -g
-C_FILES := $(shell find -iname '*.c' | sort | sed -e 's/^\.\///')
-H_FILES := $(shell find -iname '*.h' | sort | sed -e 's/^\.\///')
-LEX_FILES := $(shell find -iname '*.lex' | sort | sed -e 's/^\.\///')
-BISON_FILES := $(shell find -iname '*.y' | sort | sed -e 's/^\.\///')
-O_FILES := $(patsubst %.c,.objs/%.o,$(C_FILES)) $(patsubst %.lex,.objs/%.yy.o,$(LEX_FILES)) $(patsubst %.y,.objs/%.tab.o,$(BISON_FILES))
-CFLAGS := -MD -ggdb -Wall
-LDFLAGS := -g -lpcap -liw -Wall
-D_FILES := $(shell find -iname '*.d' | sort)
+NSU_OBJS += $(patsubst %.y,%.tab.o,$(BISON_SRC)) $(patsubst %.lex,%.yy.o,$(LEX_SRC))
 
--include $(D_FILES)
-
-$(O_FILES): %: Makefile
-netsumonner: Makefile
-
-dirs: .objs/.stamp .deps/.stamp
-
-.%/.stamp: $(C_FILES)
-	mkdir -p $(shell echo $(C_FILES) | xargs -n1 -r dirname | uniq | sed -e 's/^/$(patsubst %/.stamp,%,$@)\//')
-	touch $@
-
-.objs/%.o: %.c
-	$(CC) -c $(CFLAGS) $< -o $@ -MF $(patsubst .objs%.o,.deps%.d,$@)
-
-%.yy.c: %.lex %.tab.c
-	flex -o $@ $<
-
-%.tab.c: %.y
-	bison $(YFLAGS) -o $@ $<
-
-netsummoner: $(O_FILES)
-	$(CC) $(LDFLAGS) $(O_FILES) -o $@
-
-clean:
-	rm -fr .deps .objs core cscope.out netsumonner configuration.yy.* configuration.tab.* configuration.output configuration.vcg
-
-tags: $(C_FILES) $(H_FILES) Makefile
-	exuberant-ctags --c++-kinds=+p --fields=+iaS --extra=+q -I $(C_FILES) $(H_FILES) || true
-
-cscope.out: $(C_FILES) $(H_FILES)
-	cscope -b $^ || true
+obj/netsummoner/netsummoner: $(addprefix obj/netsummoner/,$(NSU_OBJS)) $(NETLIB)
+obj/netsummoner/netsummoner: LIBS+=-lpcap -liw

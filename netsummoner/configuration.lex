@@ -1,6 +1,6 @@
 %{
 #include <stdlib.h>
-#include "netsummoner.h"
+#include "netsummoner/netsummoner.h"
 #include "configuration.tab.h"
 
 #define YY_NO_UNPUT 1

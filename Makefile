@@ -1,4 +1,6 @@
 CC := gcc
+LEX := flex
+YACC := bison
 CLANG := -std=gnu99
 COPT := -O2 -fstrict-aliasing -finline-limit=2000
 CWARNS := -Wall -W -Wno-parentheses -Wstrict-prototypes -Wmissing-prototypes -Winline
@@ -6,6 +8,7 @@ LOPT =
 LIBS =
 CDEBUG := -DDEBUG -ggdb
 
+YFLAGS := -d -t -r state,look-ahead,itemset -v -g
 CFLAGS := $(CLANG) $(COPT) $(CDEBUG) $(CWARNS) -I.
 LDFLAGS := $(LOPT)
 
@@ -27,6 +30,7 @@ distclean:: clean
 
 include lib/Makefile
 include netscout/Makefile
+include netsummoner/Makefile
 
 programs: $(PROGS)
 
@@ -66,6 +70,12 @@ obj/%-t: obj/%-tt.o
 
 obj/%: obj/%.o
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+obj/%.yy.c: %.lex obj/%.tab.c
+	$(LEX) -o $@ $<
+
+obj/%.tab.c: %.y
+	$(YACC) $(YFLAGS) -o $@ $<
 
 # Don't delete intermediate targets. There shouldn't be any, but due to bugs
 # in GNU Make rules with targets in not-yet-existing directories are ignored

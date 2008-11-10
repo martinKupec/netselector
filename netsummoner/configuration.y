@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "netsummoner.h"
-#include "list.h"
+#include "netsummoner/netsummoner.h"
+#include "lib/netselector.h"
+#include "lib/list.h"
 
 int yylex(void);
 void yyerror (char const *err);
@@ -146,7 +147,7 @@ atype: ON MATCH { $$ = $2; }
 
 %%
 
-void yyerror (char const *err) {
+void yyerror (char const *err UNUSED) {
 	//fprintf(stderr, "Bison: %s ", err);
 	fprintf(stderr, "Unexpected symbol %s at line %d\n", yytext, yylloc.first_line);
 }
@@ -171,7 +172,7 @@ void make_rule_ret(struct rule_ret *rule, unsigned count, ...) {
 static inline void new_network(char *name, unsigned target_score, struct rule_set *rules) {
 	struct network *net;
 	
-	net = list_network_add();
+	net = (struct network *) (list_add_after(list_network.head.prev, sizeof(struct network)));
 	net->rules = rules;
 	net->name = name;
 	net->target_score = target_score;
@@ -181,7 +182,7 @@ static inline void new_network(char *name, unsigned target_score, struct rule_se
 static inline void new_action(char *name, struct action_plan *plan) {
 	struct action *act;
 
-	act = list_action_add();
+	act = (struct action *) (list_add_after(list_action.head.prev, sizeof(struct action)));
 	act->name = name;
 	act->actions = plan;
 	act->count = counter_max;
@@ -190,7 +191,7 @@ static inline void new_action(char *name, struct action_plan *plan) {
 static inline void new_assembly(char *net_n, char *act_n, int type) {
 	struct assembly *asme;
 
-	asme = list_assembly_add();
+	asme = (struct assembly *) (list_add_after(list_assembly.head.prev, sizeof(struct assembly)));
 	asme->net_name = net_n;
 	asme->act_name = act_n;
 	asme->type = type;

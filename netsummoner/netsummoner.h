@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "list.h"
+#include "lib/list.h"
 
 struct rule {
 	bool matched;
