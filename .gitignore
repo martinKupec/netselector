@@ -4,3 +4,5 @@
 .deps/
 .objs/
 /obj/
+depend.new
+*.swp

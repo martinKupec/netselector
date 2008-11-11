@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <pcap.h>
 
 #define IPQUAD(x) ((unsigned char *)&(x))[0], ((unsigned char *)&(x))[1], ((unsigned char *)&(x))[2], ((unsigned char*)&(x))[3]
 
@@ -139,12 +140,28 @@ typedef struct stat_ip *(* callback_ip)(const uint32_t);
 typedef struct stat_ether *(* callback_ether)(const uint8_t *);
 typedef struct stat_wifi *(* callback_wifi)(const uint8_t *);
 
+typedef void (*score_callback)(const unsigned);
+
+struct net_pcap {
+	const char *dev;
+	const char *file;
+	const char *wifidev;
+	bool dhcp_active;
+	bool promiscuous;
+	const score_callback score_fnc;
+	char errbuf[PCAP_ERRBUF_SIZE];
+	int err;
+};
+
 extern callback_ip get_node_ip;
 extern callback_ether get_node_ether;
 extern callback_wifi get_node_wifi;
 extern bool show_received;
 
+extern volatile int signal_stop;
+
 void libnetselector_init(callback_ip ip, callback_ether ether, callback_wifi wifi, bool show);
+int use_pcap(struct net_pcap *np);
 
 #endif
 
