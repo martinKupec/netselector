@@ -5,4 +5,5 @@
 .objs/
 /obj/
 depend.new
+depend
 *.swp

@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "lib/list.h"
+#include "lib/netselector.h"
 
 struct rule {
 	bool matched;
@@ -47,6 +48,12 @@ struct assembly {
 	int type;
 	char *net_name;
 	char *act_name;
+};
+
+struct arbiter_queue {
+	struct stat_ether *enode_f, *enode_t;
+	struct stat_ip *inode_f, *inode_t;
+	struct stat_wifi *wnode;
 };
 
 extern struct list list_network, list_action, list_assembly;

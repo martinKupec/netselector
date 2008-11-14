@@ -82,15 +82,15 @@ unsigned net_hndl_ip(const uint8_t *pkt, shell *sh) {
 	struct stat_ip *node;
 	unsigned score = 0;
 
-	sh->to.lower_node = get_node_ip(hdr->daddr);
-	node = (struct stat_ip *)(sh->to.lower_node);
-	node->ether = lower_to;
-	if(!node->count) {
-		score += SCORE_IP;
-	}
 	sh->from.lower_node = get_node_ip(hdr->saddr);
 	node = (struct stat_ip *)(sh->from.lower_node);
 	node->ether = lower_from;
+	if(!node->count) {
+		score += SCORE_IP;
+	}
+	sh->to.lower_node = get_node_ip(hdr->daddr);
+	node = (struct stat_ip *)(sh->to.lower_node);
+	node->ether = lower_to;
 	if(!node->count) {
 		score += SCORE_IP;
 	}
