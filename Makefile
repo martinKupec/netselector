@@ -8,7 +8,7 @@ LOPT =
 LIBS =
 CDEBUG := -DDEBUG -ggdb
 
-YFLAGS := -d -t -r state,look-ahead,itemset -v -g
+YFLAGS = --defines=$(patsubst %.y,%.tab.h,$<) -t -r state,look-ahead,itemset -v -g
 CFLAGS := $(CLANG) $(COPT) $(CDEBUG) $(CWARNS) -I.
 LDFLAGS := $(LOPT)
 

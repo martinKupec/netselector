@@ -105,7 +105,7 @@ typedef struct stat_wifi {
 } stat_wifi;
 
 typedef struct proto_nbname {
-	char name[16];
+	char name[17];
 } proto_nbname;
 #define nbname_getmem()	((struct proto_nbname *) (malloc(sizeof(struct proto_nbname))))
 

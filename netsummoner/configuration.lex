@@ -1,7 +1,7 @@
 %{
 #include <stdlib.h>
 #include "netsummoner/netsummoner.h"
-#include "configuration.tab.h"
+#include "netsummoner/configuration.tab.h"
 
 #define YY_NO_UNPUT 1
 #define YY_USER_ACTION yylloc.first_line = yylineno;
