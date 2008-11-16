@@ -1,12 +1,12 @@
 #comments
 
 network "home" 100 {
-	wifi mac 01:01:01:01:01:01 50
-	wifi essid "home" 50
-	stp root 80:01:01:01:01:01:01:01 100
-	gateway	ip 1.1.1.1 mac 01:01:01:01:01:01 50
-	dhcps mac 01:01:01:01:01:01 50
-	nbns name "WINDOWS" 50
+	wifi mac 00:0E:2E:64:66:58 50
+	wifi essid "magon-home" 50
+	stp root 80:00:00:0E:2E:64:66:58 100
+	gateway	ip 192.168.0.1 mac 00:0E:2E:64:66:58 50
+	dhcps mac 00:0E:2E:64:66:58 50
+	nbns name "ZALOHY" 50
 }
 
 network "school" 100 {
