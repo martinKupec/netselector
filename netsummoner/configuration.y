@@ -59,7 +59,7 @@ decl: network
 network: NETWORK VAL_STR VAL_NUM { counter = 0; } '{' nstmt '}' { new_network($2, $3, $6); }
 	;
 
-nstmt: /* empty */ { $$ = malloc(sizeof(struct rule) * counter); counter_max = counter--; }
+nstmt: /* empty */ { $$ = malloc(sizeof(struct rule_set) * counter); counter_max = counter--; }
 	| WIFI wifi nstmtn { $$ = $3; }
 	| STP stp nstmtn { $$ = $3; }
 	| GATEWAY gateway nstmtn { $$ = $3; }

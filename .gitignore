@@ -7,3 +7,4 @@
 depend.new
 depend
 *.swp
+*.tab.h
