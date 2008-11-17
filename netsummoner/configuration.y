@@ -161,9 +161,58 @@ void make_rule_ret(struct rule_ret *rule, unsigned count, ...) {
 	rule->count = count;
 	rule->items = malloc(sizeof(struct rule) * count);
 	while(count--) {
+		int t;
+
 		i = va_arg(v, struct rule *);
+		t = i->type > 0 ? i->type : -i->type;
 		rule->items[count].type = i->type;
 		rule->items[count].data = i->data;
+		switch(t) {
+		case IP:
+		{
+			unsigned a, b, c, d;
+
+			sscanf(i->data, "%d.%d.%d.%d", &a, &b, &c, &d);
+			a &= 0xFF;
+			b &= 0xFF;
+			c &= 0xFF;
+			d &= 0xFF;
+			*((uint32_t *)(i->data)) = (a << 24) | (b << 16) | (c << 8) | d;
+		}
+			break;
+		case MAC:
+		case ROOT:
+		{
+			char *str = i->data;
+			uint8_t *mac = i->data;
+			unsigned a;
+
+			while(*str) {
+				sscanf(str, "%X", &a);
+				str += 3;
+				*mac++ = a;
+			}
+		}
+			break;
+		case ESSID:
+		case NAME:
+		case ID:
+		{
+			char *str = i->data;
+
+			str++;
+			rule->items[count].data++;
+			while(*str && (*str != '"')) {
+				str++;
+			}
+			*str = '\0';
+		}
+			break;
+		default:
+			printf("Type: %d\n", t);
+			abort();
+			break;
+		}
 		rule->items[count].matched = 0;
 	}
 	va_end(v);

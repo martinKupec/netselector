@@ -51,6 +51,7 @@ static struct stat_ip *list_ip_add(const uint32_t ip) {
 }
 
 static struct stat_wifi *list_wifi_add(const uint8_t *mac) {
+	aqueue.wnode = &wifi_node;
 	memcpy(aqueue.wnode->mac, mac, 6);
 	return &wifi_node;
 }
