@@ -1,4 +1,2 @@
 do proper nbns packet reading
 wifi adding push througth catcher or something
-do parsed data translation in parser time
-check and change node_info printing statements

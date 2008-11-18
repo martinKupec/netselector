@@ -35,8 +35,10 @@ void arbiter(const struct arbiter_queue *queue) {
 						case MAC:
 							if(queue->enode_t && !memcmp(item->data, queue->enode_t->mac, 6)) {
 								item->matched = true;
+								printf("Network %s matched MAC\n", nnode->name);
 							} else if(queue->enode_f && !memcmp(item->data, queue->enode_f->mac, 6)) {
 								item->matched = true;
+								printf("Network %s matched MAC\n", nnode->name);
 							} else {
 								unmatched = true;
 							}
@@ -44,8 +46,10 @@ void arbiter(const struct arbiter_queue *queue) {
 						case IP:
 							if(queue->inode_t && !memcmp(item->data, &(queue->inode_t->ip), 4)) {
 								item->matched = true;
+								printf("Network %s matched IP\n", nnode->name);
 							} else if(queue->inode_f && !memcmp(item->data, &(queue->inode_f->ip), 4)) {
 								item->matched = true;
+								printf("Network %s matched IP\n", nnode->name);
 							} else {
 								unmatched = true;
 							}
@@ -62,6 +66,7 @@ void arbiter(const struct arbiter_queue *queue) {
 									!strcpy(item->data,
 										(char *) (((struct proto_cdp *) (queue->enode_f->info))->did))) {
 								item->matched = true;
+								printf("Network %s matched CDP ID\n", nnode->name);
 							} else {
 								unmatched = true;
 							}
@@ -78,6 +83,7 @@ void arbiter(const struct arbiter_queue *queue) {
 									!memcmp(item->data,
 										((struct proto_stp *) (queue->enode_f->info))->root, 8)) {
 								item->matched = true;
+								printf("Network %s matched STP ROOT\n", nnode->name);
 							} else {
 								unmatched = true;
 							}
@@ -94,6 +100,7 @@ void arbiter(const struct arbiter_queue *queue) {
 									!strcpy(item->data,
 										(char *) (((struct proto_nbname *) (queue->inode_f->info))->name))) {
 								item->matched = true;
+								printf("Network %s matched NBNS NAME\n", nnode->name);
 							} else {
 								unmatched = true;
 							}
@@ -108,6 +115,7 @@ void arbiter(const struct arbiter_queue *queue) {
 						case MAC:
 							if(queue->wnode && !memcmp(item->data, queue->wnode->mac, 6)) {
 								item->matched = true;
+								printf("Network %s matched WIFI MAC\n", nnode->name);
 							} else {
 								unmatched = true;
 							}
@@ -115,6 +123,7 @@ void arbiter(const struct arbiter_queue *queue) {
 						case ESSID:
 							if(queue->wnode && !strcmp(item->data, (char *) queue->wnode->essid)) {
 								item->matched = true;
+								printf("Network %s matched WIFI ESSID\n", nnode->name);
 							} else {
 								unmatched = true;
 							}

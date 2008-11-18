@@ -17,15 +17,31 @@ struct pseudo_node {
 	struct info_field *info;
 };
 
+static int cond_printf(const char *fmt, ...) {
+	va_list va;
+	int ret;
+
+	if(!show_received) {
+		return 0;
+	}
+	va_start(va, fmt);
+	ret = vprintf(fmt, va);
+	va_end(va);
+	return ret;
+}
+
 void show_time(const struct info_field *info, unsigned space) {
 
+	if(!show_received) {
+		return;
+	}
 	while(space < SPACE_SIZE) {
 		putchar(' ');
 		space++;
 	}
-	printf("First %03u.%03u ", SHOW_TIME(info->time_first));
-	printf("Last %03u.%03u ", SHOW_TIME(info->time_last));
-	printf("Count %d\n", info->count);
+	cond_printf("First %03u.%03u ", SHOW_TIME(info->time_first));
+	cond_printf("Last %03u.%03u ", SHOW_TIME(info->time_last));
+	cond_printf("Count %d\n", info->count);
 }
 
 void show_nbns(const struct info_field *info) {
@@ -35,7 +51,7 @@ void show_nbns(const struct info_field *info) {
 
 	memcpy(buf, nbname->name, 16);
 	buf[16] = '\0';
-	space = printf("        Ask's NBName %s", buf);
+	space = cond_printf("        Ask's NBName %s", buf);
 	show_time(info, space);
 }
 
@@ -44,16 +60,16 @@ unsigned show_dhcps(const struct info_field *info, bool oneline) {
 	unsigned space;
 
 	if(!oneline) {
-		printf("        ");
+		cond_printf("        ");
 	}
-	space = printf("DHCP %d.%d.%d.%d", IPQUAD(dhcp->server_IP));
+	space = cond_printf("DHCP %d.%d.%d.%d", IPQUAD(dhcp->server_IP));
 	if(oneline) {
 		return space;
 	} else {
 		show_time(info, space + 8);
-		printf("            Router %d.%d.%d.%d\n", IPQUAD(dhcp->router_IP));
-		printf("            DNS %d.%d.%d.%d %d.%d.%d.%d\n", IPQUAD(dhcp->dnsp), IPQUAD(dhcp->dnss));
-		printf("            Mask %d.%d.%d.%d\n", IPQUAD(dhcp->mask));
+		cond_printf("            Router %d.%d.%d.%d\n", IPQUAD(dhcp->router_IP));
+		cond_printf("            DNS %d.%d.%d.%d %d.%d.%d.%d\n", IPQUAD(dhcp->dnsp), IPQUAD(dhcp->dnss));
+		cond_printf("            Mask %d.%d.%d.%d\n", IPQUAD(dhcp->mask));
 		return 0;
 	}
 }
@@ -64,20 +80,20 @@ unsigned show_stp(const struct info_field *info, bool oneline) {
 
 	if(!oneline) {
 
-		space = printf("    STP Bridge: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", stp->bridge[0],
+		space = cond_printf("    STP Bridge: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", stp->bridge[0],
 				stp->bridge[1], stp->bridge[2], stp->bridge[3], stp->bridge[4],
 				stp->bridge[5], stp->bridge[6], stp->bridge[7]);
 		show_time(info, space);
-		printf("        ");
+		cond_printf("        ");
 	}
-	space = printf("Root: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", stp->root[0],
+	space = cond_printf("Root: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X", stp->root[0],
 		stp->root[1], stp->root[2], stp->root[3], stp->root[4], stp->root[5],
 		stp->root[6], stp->root[7]);
 	if(!oneline) {
-		printf("\n        Port: %04X\n", stp->port);
+		cond_printf("\n        Port: %04X\n", stp->port);
 		return 0;
 	} else {
-		return space + printf(" Port:%04X", stp->port);
+		return space + cond_printf(" Port:%04X", stp->port);
 	}
 }
 
@@ -86,26 +102,26 @@ unsigned show_cdp(const struct info_field *info, bool oneline) {
 	unsigned space = 0;
 
 	if(oneline) {
-		return printf("CDP %s Port %s", cdp->did, cdp->port);
+		return cond_printf("CDP %s Port %s", cdp->did, cdp->port);
 	} else {
-		space = printf("    CDP Device ID %s ", cdp->did);
+		space = cond_printf("    CDP Device ID %s ", cdp->did);
 		show_time(info, space);
-		printf("        Port %s\n        Version %s\n        Platform %s\n", cdp->port, cdp->ver, cdp->plat);;
+		cond_printf("        Port %s\n        Version %s\n        Platform %s\n", cdp->port, cdp->ver, cdp->plat);;
 	}
 	return 0;
 }
 
 static unsigned on_eth(const uint8_t *mac, unsigned space) {
-	if(show_received) {
-		while(space < SPACE_FIRST) {
-			space++;
-			putchar(' ');
-		}
-		return printf("on ETH %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2],
-				mac[3], mac[4], mac[5]);
-	} else {
+
+	if(!show_received) {
 		return 0;
 	}
+	while(space < SPACE_FIRST) {
+		space++;
+		putchar(' ');
+	}
+	return cond_printf("on ETH %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2],
+			mac[3], mac[4], mac[5]);
 }
 
 static void verdict(unsigned space, const char *format, ...) {
@@ -163,14 +179,10 @@ static unsigned info_data_score(const void *node, const struct info_field *info)
 
 	switch(info->type) {
 	case ETH_TYPE_IP:
-		if(show_received) {
-			space = printf("IP %d.%d.%d.%d", IPQUAD(((const struct stat_ip *)info->data)->ip));
-		}
+		space = cond_printf("IP %d.%d.%d.%d", IPQUAD(((const struct stat_ip *)info->data)->ip));
 		space = on_eth(neth->mac, space);
 		space = is_router(neth->info, info - neth->info, neth->count, space);
-		if(show_received) {
-			putchar('\n');
-		}
+		cond_printf("\n");
 		return space; // IP Added when adding to list, adding just score for gateway
 	case ETH_TYPE_CDP:
 		space = show_cdp(info, 1);
@@ -192,9 +204,7 @@ static unsigned info_data_score(const void *node, const struct info_field *info)
 	case IP_TYPE_ARP:
 		return SCORE_ARP;
 	case IP_TYPE_DNSS:
-		if(show_received) {
-			space = printf("DNS %d.%d.%d.%d", IPQUAD(nip->ip));
-		}
+		space = cond_printf("DNS %d.%d.%d.%d", IPQUAD(nip->ip));
 		space = on_eth(nip->ether->mac, space);
 		verdict(space, "DNS Server\n");
 		return SCORE_DNSS;
@@ -209,16 +219,12 @@ static unsigned info_data_score(const void *node, const struct info_field *info)
 	case IP_TYPE_UNKNOWN:
 		return SCORE_UNKNOWN;
 	case ETH_TYPE_WLCCP:
-		if(show_received) {
-			space = printf("WLCCP");
-		}
+		space = cond_printf("WLCCP");
 		space = on_eth(neth->mac, space);
 		verdict(space, "Cisco Router\n");
 		return SCORE_WLCCP;
 	case ETH_TYPE_EAP:
-		if(show_received) {
-			space = printf("EAP");
-		}
+		space = cond_printf("EAP");
 		space = on_eth(neth->mac, space);
 		verdict(space, "EAP Server\n");
 		return SCORE_EAP;
