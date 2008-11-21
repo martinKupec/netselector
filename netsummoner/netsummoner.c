@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
 	list_init(&list_network);
 	list_init(&list_action);
 	list_init(&list_assembly);
-	libnetselector_init(list_ip_add, list_ether_add, list_wifi_add, 0);
+	libnetselector_init(list_ip_add, list_ether_add, list_wifi_add, 1);
 
 	yyin = fopen("configure", "r");
 	if(!yyin) {

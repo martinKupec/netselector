@@ -177,7 +177,7 @@ void make_rule_ret(struct rule_ret *rule, unsigned count, ...) {
 			b &= 0xFF;
 			c &= 0xFF;
 			d &= 0xFF;
-			*((uint32_t *)(i->data)) = (a << 24) | (b << 16) | (c << 8) | d;
+			*((uint32_t *)(i->data)) = (d << 24) | (c << 16) | (b << 8) | a;
 		}
 			break;
 		case MAC:

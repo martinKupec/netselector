@@ -35,10 +35,10 @@ void arbiter(const struct arbiter_queue *queue) {
 						case MAC:
 							if(queue->enode_t && !memcmp(item->data, queue->enode_t->mac, 6)) {
 								item->matched = true;
-								printf("Network %s matched MAC\n", nnode->name);
+								printf("Network %s matched MAC - %d\n", nnode->name, rule->type);
 							} else if(queue->enode_f && !memcmp(item->data, queue->enode_f->mac, 6)) {
 								item->matched = true;
-								printf("Network %s matched MAC\n", nnode->name);
+								printf("Network %s matched MAC - %d\n", nnode->name, rule->type);
 							} else {
 								unmatched = true;
 							}
@@ -81,7 +81,7 @@ void arbiter(const struct arbiter_queue *queue) {
 						case ROOT:
 							if(queue->enode_f && (queue->enode_f->info->type == ETH_TYPE_STP) && 
 									!memcmp(item->data,
-										((struct proto_stp *) (queue->enode_f->info))->root, 8)) {
+										((struct proto_stp *) (queue->enode_f->info->data))->root, 8)) {
 								item->matched = true;
 								printf("Network %s matched STP ROOT\n", nnode->name);
 							} else {
