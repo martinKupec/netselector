@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
 	int opt, ret;
 	struct net_pcap np = { .score_fnc = pcap_callback };
 	
-	while ((opt = getopt(argc, argv, "hpw:f:i:d")) >= 0) {
+	while ((opt = getopt(argc, argv, "hvpw:f:i:d")) >= 0) {
 		switch(opt) {
 		case 'w':
 			np.wifidev = optarg;

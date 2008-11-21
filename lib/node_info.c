@@ -280,6 +280,7 @@ static size_t info_data_size(const uint32_t type) {
 	case IP_TYPE_SSDP:
 	case IP_TYPE_DHCPC:
 	case IP_TYPE_UNKNOWN:
+	case WIFI_TYPE_QUALITY:
 	default:
 		return 0;
 	}
@@ -348,7 +349,7 @@ static unsigned node_info_find(const struct info_field *info, const unsigned cou
 unsigned node_set_info(const struct shell_exchange *ex, const uint32_t time, const int node_type) {
 	void *whole_node = ex->lower_node;
 	struct pseudo_node *node;
-	unsigned here;
+	volatile unsigned here;
 	int found = 0;
 
 	switch(node_type) {
@@ -357,6 +358,9 @@ unsigned node_set_info(const struct shell_exchange *ex, const uint32_t time, con
 		break;
 	case NODE_TYPE_IP:
 		node = (struct pseudo_node *) &(((struct stat_ip *)(whole_node))->count);
+		break;
+	case NODE_TYPE_WIFI:
+		node = (struct pseudo_node *) &(((struct stat_wifi *)(whole_node))->count);
 		break;
 	default:
 		node = NULL;

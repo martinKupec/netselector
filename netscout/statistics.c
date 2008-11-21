@@ -131,24 +131,27 @@ void statistics_eth_based(void) {
 
 void statistics_wifi_based(void) {
 	struct stat_wifi *nwifi;
-	unsigned int space, i;
-	unsigned int avg;
+	unsigned space, i;
+	unsigned avg, count;
 
 	LIST_WALK(nwifi, &list_wifi) {
-		space = printf("Wifi Essid %s count %d\n", nwifi->essid, nwifi->count);
-		//show_time(nwifi->time, nwifi->_count, space);
+		printf("Wifi Essid %s MAC %02X:%02X:%02X:%02X:%02X:%02X\n", nwifi->essid, nwifi->mac[0],
+				nwifi->mac[1], nwifi->mac[2], nwifi->mac[3], nwifi->mac[4], nwifi->mac[5]);
 
-		printf("        Quality ");
-		avg = 0;
+
+		avg = count = 0;
 		for(i = 0; i < nwifi->count; i++) {
-			avg += nwifi->quality[i];
+			if(nwifi->info[i].type != WIFI_TYPE_QUALITY) {
+				continue;
+			}
+			space = printf("    Quality: %u", (uint32_t) nwifi->info[i].data);
+			show_time(nwifi->info + i, space);
+			avg += (uint32_t) nwifi->info[i].data;
+			count++;
 		}
 
-		avg /= nwifi->count;
-		printf("First %u ", nwifi->quality[0]);
-		printf("Last %u ", nwifi->quality[nwifi->count - 1]);
-		printf("Avg %u\n", avg);
-		printf("\n");
+		avg /= count;
+		printf("    Avg Quality %u\n\n", avg);
 	}
 }
 

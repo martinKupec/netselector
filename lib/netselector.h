@@ -57,7 +57,12 @@ enum {
 	IP_TYPE_DNSC,
 	IP_TYPE_UNKNOWN,
 	IP_TYPE_LAST,
+
+	WIFI_TYPE_QUALITY,
+	WIFI_TYPE_LAST,
+
 	INFO_TYPE_LAST
+
 };
 
 struct shell_exchange {
@@ -99,9 +104,8 @@ typedef struct stat_wifi {
 	uint8_t mac[6];
 
 	uint8_t essid[16];
-	uint8_t count;
-	uint8_t *quality;
-	uint32_t *time;
+	unsigned count;
+	struct info_field *info;
 } stat_wifi;
 
 typedef struct proto_nbname {
@@ -130,6 +134,10 @@ typedef struct proto_dhcp {
 	uint32_t dnsp, dnss;
 	uint32_t mask;
 } proto_dhcp;
+
+typedef struct proto_wifi {
+
+} proto_wifi;
 #define dhcp_getmem()	((struct proto_dhcp *) (malloc(sizeof(struct proto_dhcp))))
 
 #define ether_node_set_info(ex, time) node_set_info(ex, time, NODE_TYPE_ETH)

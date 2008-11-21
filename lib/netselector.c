@@ -115,7 +115,7 @@ int use_pcap(struct net_pcap *np) {
 				dhcpc_offers(pcap_hndl, np->dev);
 			}
 			if(np->wifidev) {
-				ret = wifi_scan(start_time);
+				ret = wifi_scan(np->score_fnc, start_time);
 			} else {
 				ret = 0;
 			}
