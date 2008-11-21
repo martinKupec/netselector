@@ -148,6 +148,7 @@ struct net_pcap {
 	const char *wifidev;
 	bool dhcp_active;
 	bool promiscuous;
+	bool verbose;
 	const score_callback score_fnc;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	int err;
