@@ -238,10 +238,43 @@ static inline void new_action(char *name, struct action_plan *plan) {
 }
 
 static inline void new_assembly(char *net_n, char *act_n, int type) {
-	struct assembly *asme;
+	struct network *nnode;
+	struct action *anode;
 
-	asme = (struct assembly *) (list_add_after(list_assembly.head.prev, sizeof(struct assembly)));
-	asme->net_name = net_n;
-	asme->act_name = act_n;
-	asme->type = type;
+	LIST_WALK(nnode, &list_network) {
+		if(!strcmp(nnode->name, net_n)) {
+			break;
+		}
+	}
+	if(LIST_END(nnode, &list_network))  {
+		fprintf(stderr, "Assembly: Unable to find network: %s\n", net_n); //FIXME what about crashing?
+		return;
+	}
+	LIST_WALK(anode, &list_action) {
+		if(!strcmp(anode->name, act_n)) {
+			break;
+		}
+	}
+	if(LIST_END(anode, &list_action))  {
+		fprintf(stderr, "Assembly: Unable to find action: %s\n", act_n); //FIXME what about crashing?
+		return;
+	}
+
+	switch(type) {
+	case MATCH:
+		if(nnode->match) {
+			fprintf(stderr, "Assembly: Redefining match on network %s\n", net_n);
+		}
+		nnode->match = anode;
+		break;
+	case DOWN:
+		if(nnode->down) {
+			fprintf(stderr, "Assembly: Redefining down on network %s\n", net_n);
+		}
+		nnode->down = anode;
+		break;
+	default:
+		fprintf(stderr, "Assembly: Unknown action\n"); //FIXME what about crashing?
+		break;
+	}
 }

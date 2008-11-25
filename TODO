@@ -1,3 +1,5 @@
 do proper nbns packet reading
 wifi adding push througth catcher or something
 matching IP and MAC is somewhat weird
+implement NOT statement
+verbose netsummoner is too verbose

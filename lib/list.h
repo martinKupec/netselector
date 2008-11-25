@@ -62,5 +62,6 @@ static inline void list_remove(node *n) {
 #define LIST_WALK(n, l) for(n = (void *)((l)->head.next + 1); (struct node *)(n) != (&((l)->head) + 1);\
 							n = (void *) ((((struct node *) (n)) - 1)->next + 1))
 
+#define LIST_END(n, l) ((struct node *)(n) == (&((l)->head) + 1))
 #endif
 

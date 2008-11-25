@@ -31,6 +31,7 @@ struct network {
 	struct rule_set *rules;
 	char *name;
 	unsigned target_score;
+	struct action *match, *down;
 };
 
 struct action_plan {
@@ -44,18 +45,12 @@ struct action {
 	struct action_plan *actions;
 };
 
-struct assembly {
-	int type;
-	char *net_name;
-	char *act_name;
-};
-
 struct arbiter_queue {
 	struct stat_ether *enode_f, *enode_t;
 	struct stat_ip *inode_f, *inode_t;
 	struct stat_wifi *wnode;
 };
 
-extern struct list list_network, list_action, list_assembly;
+extern struct list list_network, list_action;
 
 #endif

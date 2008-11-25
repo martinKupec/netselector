@@ -62,7 +62,7 @@ static void daemonize(void) {
 
 static void pcap_callback(const unsigned score UNUSED) {
 	arbiter(&aqueue);
-	bzero(&aqueue, sizeof(struct arbiter_queue)); //TRY TO DO PROPER CLEAN UP
+	bzero(&aqueue, sizeof(struct arbiter_queue)); //FIXME TRY TO DO PROPER CLEAN UP
 	bzero(&ether_node_from, sizeof(struct stat_ether));
 	bzero(&ether_node_to, sizeof(struct stat_ether));
 	bzero(&ip_node_from, sizeof(struct stat_ip));
