@@ -10,9 +10,15 @@ network "home" 100 {
 }
 
 network "school" 100 {
-	eap mac 01:01:01:01:01:01 100
-	dns ip 1.1.1.1 50
-	wlccp mac 01:01:01:01:01:01 100
+	eap mac 00:1D:E5:8D:26:C0 100
+	eap mac 00:13:CE:67:26:52 100
+	eap mac 00:1D:E5:2F:1B:E0 100
+	dns ip 195.113.21.1 50
+	wlccp mac 00:1D:A1:CD:13:96 100
+	wlccp mac 00:1D:E5:8D:26:C0 100
+	wlccp mac 00:19:2F:7E:50:8C 100
+	wlccp mac 00:15:C6:43:B0:02 100
+    wlccp mac 00:15:63:66:E5:45 100
 	cdp id "cisco" 100
 }
 

@@ -141,11 +141,11 @@ void arbiter(const struct arbiter_queue *queue) {
 				}
 			}
 		}
-		if(score >= nnode->target_score) {
+		/*if(score >= nnode->target_score) {
 			printf("WON\n");
 		} 
-		printf("Network %s score %d target %d\n", nnode->name, score, nnode->target_score);
+		printf("Network %s score %d target %d\n", nnode->name, score, nnode->target_score);*/
 	}
-	printf("\n");
+	//printf("\n");
 }
 

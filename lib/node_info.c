@@ -349,7 +349,7 @@ static unsigned node_info_find(const struct info_field *info, const unsigned cou
 unsigned node_set_info(const struct shell_exchange *ex, const uint32_t time, const int node_type) {
 	void *whole_node = ex->lower_node;
 	struct pseudo_node *node;
-	volatile unsigned here;
+	unsigned here;
 	int found = 0;
 
 	switch(node_type) {
