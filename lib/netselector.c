@@ -139,6 +139,9 @@ int use_pcap(struct net_pcap *np) {
 					return 7;
 				}
 			}
+			if(np->regcall) {
+				np->regcall(np->regcall_arg);
+			}
 		}
 	}
 	return 0;

@@ -42,7 +42,7 @@
 ([[:digit:]]+\.){3}[[:digit:]]+	{ yylval.str = strdup(yytext); return VAL_IP; }
 ([a-fA-F0-9]+:)+[a-fA-F0-9]+	{ yylval.str = strdup(yytext); return VAL_MAC; }
 [[:digit:]]+	{ yylval.num = atoi(yytext); return VAL_NUM; }
-\"[[:alnum:]_/\.-]*\"	{ yylval.str = strdup(yytext); return VAL_STR; }
+\"[[:alnum:]_/\.-]*\"	{ yylval.str = strdup(yytext + 1); yylval.str[strlen(yylval.str) - 1] = '\0'; return VAL_STR; }
 "{"|"}"				{ return yytext[0]; }
 #[^\n]*			/* Comments falls througth */
 \n|\ |\t	/* New lines and such falls througth */

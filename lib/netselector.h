@@ -149,6 +149,7 @@ typedef struct stat_ether *(* callback_ether)(const uint8_t *);
 typedef struct stat_wifi *(* callback_wifi)(const uint8_t *);
 
 typedef void (*score_callback)(const unsigned);
+typedef void (*regular_callback)(void *);
 
 struct net_pcap {
 	const char *dev;
@@ -160,6 +161,8 @@ struct net_pcap {
 	const score_callback score_fnc;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	int err;
+	regular_callback regcall;
+	void *regcall_arg;
 };
 
 extern callback_ip get_node_ip;

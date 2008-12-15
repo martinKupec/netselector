@@ -3,7 +3,7 @@
 #include "configuration.tab.h"
 #include "lib/netselector.h"
 
-void arbiter(const struct arbiter_queue *queue) {
+struct action *arbiter(const struct arbiter_queue *queue) {
 	struct network *nnode;
 
 	LIST_WALK(nnode, &list_network) {
@@ -141,11 +141,11 @@ void arbiter(const struct arbiter_queue *queue) {
 				}
 			}
 		}
-		/*if(score >= nnode->target_score) {
-			printf("WON\n");
+		if(score >= nnode->target_score) {
+			printf("Network %s matched\n", nnode->name);
+			return nnode->match;
 		} 
-		printf("Network %s score %d target %d\n", nnode->name, score, nnode->target_score);*/
 	}
-	//printf("\n");
+	return NULL;
 }
 

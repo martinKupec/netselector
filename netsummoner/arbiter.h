@@ -3,6 +3,6 @@
 
 #include "netsummoner.h"
 
-void arbiter(const struct arbiter_queue *queue);
+struct action *arbiter(const struct arbiter_queue *queue);
 
 #endif

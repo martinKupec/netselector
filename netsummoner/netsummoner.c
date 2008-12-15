@@ -4,6 +4,7 @@
 
 #include "netsummoner.h"
 #include "arbiter.h"
+#include "execute.h"
 #include "lib/netselector.h"
 #include "lib/score.h"
 #include "lib/list.h"
@@ -17,6 +18,7 @@ extern FILE *yyin;
 struct list list_network, list_action, list_assembly;
 
 static struct arbiter_queue aqueue;
+static bool connection;
 
 static struct stat_ether ether_node_from, ether_node_to;
 static struct stat_ip ip_node_from, ip_node_to;
@@ -61,7 +63,18 @@ static void daemonize(void) {
 }
 
 static void pcap_callback(const unsigned score UNUSED) {
-	arbiter(&aqueue);
+	struct action *act;
+
+	act = arbiter(&aqueue);
+	if(act && !connection) {
+		switch(execute(act)) {
+		case 0:
+			connection = true;
+			break;
+		default:
+			break;
+		}
+	}
 	bzero(&aqueue, sizeof(struct arbiter_queue)); //FIXME TRY TO DO PROPER CLEAN UP
 	bzero(&ether_node_from, sizeof(struct stat_ether));
 	bzero(&ether_node_to, sizeof(struct stat_ether));
@@ -83,7 +96,7 @@ static void usage(void) {
 
 int main(int argc, char **argv) {
 	int opt, ret;
-	struct net_pcap np = { .score_fnc = pcap_callback };
+	struct net_pcap np = { .score_fnc = pcap_callback, .regcall = exec_wait, .regcall_arg = (void *)(&np) };
 	
 	while ((opt = getopt(argc, argv, "hvpw:f:i:d")) >= 0) {
 		switch(opt) {

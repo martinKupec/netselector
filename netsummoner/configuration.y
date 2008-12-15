@@ -197,16 +197,6 @@ void make_rule_ret(struct rule_ret *rule, unsigned count, ...) {
 		case ESSID:
 		case NAME:
 		case ID:
-		{
-			char *str = i->data;
-
-			str++;
-			rule->items[count].data++;
-			while(*str && (*str != '"')) {
-				str++;
-			}
-			*str = '\0';
-		}
 			break;
 		default:
 			printf("Type: %d\n", t);

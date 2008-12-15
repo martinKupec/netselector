@@ -27,7 +27,7 @@ network "generic-dhcp" 1 {
 }
 
 action "home" {
-	execute "/etc/scripts/home_up.sh"
+	execute "/home/magon/scripts/tutu.sh"
 }
 
 action "shutdown" {
@@ -39,6 +39,7 @@ action "dhcp" {
 }
 
 action "school" {
+	execute "/home/magon/scripts/tutu.sh"
 	use eap "/etc/eap/configure"
 	use dhcp
 }
