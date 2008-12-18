@@ -3,7 +3,12 @@
 
 #include "netsummoner.h"
 
-int execute(struct action *act);
+enum {
+	EXEC_MATCH,
+	EXEC_DOWN,
+};
+
+int execute(struct network *net, unsigned action);
 void exec_wait(void *arg);
 
 #endif

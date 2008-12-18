@@ -22,6 +22,10 @@ network "school" 100 {
 	cdp id "cisco" 100
 }
 
+network "dorms" 100 {
+    gateway mac 00:0E:0C:70:DA:62 100
+}
+
 network "generic-dhcp" 1 {
 	dhcps not mac 01:01:01:01:01:01 50
 }
@@ -44,6 +48,7 @@ action "school" {
 	use dhcp
 }
 
+assembly "dorms" on match "school"
 assembly "home" on match "home" #matches passed in ENV VARS
 assembly "home" on down "home" #ENV ACTION="down"
 assembly "school" on match "school"

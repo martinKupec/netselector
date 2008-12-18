@@ -63,11 +63,11 @@ static void daemonize(void) {
 }
 
 static void pcap_callback(const unsigned score UNUSED) {
-	struct action *act;
+	struct network *net;
 
-	act = arbiter(&aqueue);
-	if(act && !connection) {
-		switch(execute(act)) {
+	net = arbiter(&aqueue);
+	if(net && !connection) {
+		switch(execute(net, EXEC_MATCH)) {
 		case 0:
 			connection = true;
 			break;
