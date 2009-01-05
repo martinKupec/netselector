@@ -2,9 +2,9 @@
 #define __LIB_WIFI_H__
 
 #include <stdint.h>
+#include "lib/netselector.h"
 
-int wifi_scan_init(const char *dev);
-int wifi_scan(score_callback score_fnc, uint64_t start_time);
+int wifi_init(char *dev, score_callback score_fnc);
 
 #endif
 

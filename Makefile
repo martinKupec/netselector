@@ -5,7 +5,7 @@ CLANG := -std=gnu99
 COPT := -O2 -fstrict-aliasing -finline-limit=2000
 CWARNS := -Wall -W -Wno-parentheses -Wstrict-prototypes -Wmissing-prototypes -Winline
 LOPT =
-LIBS =
+LIBS = -L misc/
 CDEBUG := -DDEBUG -ggdb
 
 YFLAGS = --defines=$(patsubst %.y,%.tab.h,$<) -t -r state,look-ahead,itemset -v -g

@@ -6,6 +6,7 @@
 #include "arbiter.h"
 #include "execute.h"
 #include "lib/netselector.h"
+#include "lib/pcap.h"
 #include "lib/score.h"
 #include "lib/list.h"
 #include "lib/wifi.h"
@@ -14,6 +15,8 @@
 
 int yyparse(void);
 extern FILE *yyin;
+
+bool show_received;
 
 struct list list_network, list_action, list_assembly;
 
@@ -24,7 +27,8 @@ static struct stat_ether ether_node_from, ether_node_to;
 static struct stat_ip ip_node_from, ip_node_to;
 static struct stat_wifi wifi_node;
 
-static struct stat_ether *list_ether_add(const uint8_t *mac) {
+//static struct stat_ether *list_ether_add(const uint8_t *mac) {
+struct stat_ether *get_node_ether(const uint8_t *mac) {
 	if(!aqueue.enode_f) {
 		aqueue.enode_f = &ether_node_from;
 		memcpy(aqueue.enode_f->mac, mac, 6);
@@ -38,7 +42,8 @@ static struct stat_ether *list_ether_add(const uint8_t *mac) {
 	}
 }
 
-static struct stat_ip *list_ip_add(const uint32_t ip) {
+//static struct stat_ip *list_ip_add(const uint32_t ip) {
+struct stat_ip *get_node_ip(const uint32_t ip) {
 	if(!aqueue.inode_f) {
 		aqueue.inode_f = &ip_node_from;
 		aqueue.inode_f->ip = ip;
@@ -52,7 +57,8 @@ static struct stat_ip *list_ip_add(const uint32_t ip) {
 	}
 }
 
-static struct stat_wifi *list_wifi_add(const uint8_t *mac) {
+//static struct stat_wifi *list_wifi_add(const uint8_t *mac) {
+struct stat_wifi *get_node_wifi(const uint8_t *mac) {
 	aqueue.wnode = &wifi_node;
 	memcpy(aqueue.wnode->mac, mac, 6);
 	return &wifi_node;
@@ -62,7 +68,7 @@ static void daemonize(void) {
 
 }
 
-static void pcap_callback(const unsigned score UNUSED) {
+static void netsummoner_score(const unsigned score UNUSED) {
 	struct network *net;
 
 	net = arbiter(&aqueue);
@@ -96,12 +102,14 @@ static void usage(void) {
 
 int main(int argc, char **argv) {
 	int opt, ret;
-	struct net_pcap np = { .score_fnc = pcap_callback, .regcall = exec_wait, .regcall_arg = (void *)(&np) };
+	struct net_pcap np = { .score_fnc = netsummoner_score };
+	char *wifidev = NULL;
+	bool dhcp_active = 0;
 	
 	while ((opt = getopt(argc, argv, "hvpw:f:i:d")) >= 0) {
 		switch(opt) {
 		case 'w':
-			np.wifidev = optarg;
+			wifidev = optarg;
 			break;
 		case 'f':
 			np.file = optarg;
@@ -110,13 +118,13 @@ int main(int argc, char **argv) {
 			np.dev = optarg;
 			break;
 		case 'd':
-			np.dhcp_active = 1;
+			dhcp_active = 1;
 			break;
 		case 'p':
 			np.promiscuous = 1;
 			break;
 		case 'v':
-			np.verbose = 1;
+			show_received = 1;
 			break;
 		case 'h':
 		default:
@@ -125,21 +133,23 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	daemonize();
 
 	list_init(&list_network);
 	list_init(&list_action);
 	list_init(&list_assembly);
-	libnetselector_init(list_ip_add, list_ether_add, list_wifi_add, np.verbose);
 
 	yyin = fopen("configure", "r");
 	if(!yyin) {
 		fprintf(stderr, "Unable to open configuration file\n");
 		return 1;
 	}
-	yyparse();
+	ret = yyparse();
+	if(ret != 0) {
+		fprintf(stderr, "Errors in configuration file\n");
+		return 1;
+	}
 
-	ret = use_pcap(&np);
+	ret = pcap_init(&np);
 	switch(ret) {
 	case 0:
 		break;
@@ -150,21 +160,49 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Couldn't open device %s: %s\n", np.dev, np.errbuf);
 		return 1;
 	case 3:
+		fprintf(stderr, "No device or file specified\n");
 		usage();
 		return 1;
 	case 4:
-		fprintf(stderr, "Unknown datalink type %d\n", np.err);
+		fprintf(stderr, "Unknown datalink\n");
 		return 1;
 	case 5:
-		fprintf(stderr, "Wifi scan init error\n");
-		return 1;
-	case 6:
-		fprintf(stderr, "Wifi scan error %d %d\n", np.err, errno);
-		return 1;
-	case 7:
-		fprintf(stderr, "pcap_dispatch returned: %d\n", np.err);
+		fprintf(stderr, "Unable to register module pcap\n");
 		return 1;
 	}
+
+	if(wifidev) {
+		ret = wifi_init(wifidev, netsummoner_score);
+		switch(ret) {
+		case 1:
+			perror("Couldn't open wifi socket: ");
+			return 2;
+		case 2:
+			fprintf(stderr, "Unable to register module wifi\n");
+			return 2;
+		}
+	}
+	if(dhcp_active) {
+		if(!np.dev) {
+			fprintf(stderr, "Active DHCP is not possible on file\n");
+		} else {
+			ret = dhcpc_init(np.hndl, np.dev);
+			switch(ret) {
+			case 1:
+				perror("Random generator error: ");
+				return 3;
+			case 2:
+				perror("Unable to resolv HW address: ");
+				return 3;
+			case 3:
+				fprintf(stderr, "Unable to register module dhcpc\n");
+				return 3;
+			}
+		}
+	}
+
+	daemonize();
+	(void) dispatch_loop();
 
 	return 0;
 }

@@ -22,6 +22,7 @@
 "dhcps"			{ yylval.num = DHCPS; return DHCPS; }
 "nbns"			{ yylval.num = NBNS; return NBNS; }
 "gateway"		{ yylval.num = GATEWAY; return GATEWAY; }
+"wpa"			{ yylval.num = WPA; return WPA; }
 "eap"			{ yylval.num = EAP; return EAP; }
 "wlccp"			{ yylval.num = WLCCP; return WLCCP; }
 "cdp"			{ yylval.num = CDP; return CDP; }

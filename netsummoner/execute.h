@@ -9,6 +9,5 @@ enum {
 };
 
 int execute(struct network *net, unsigned action);
-void exec_wait(void *arg);
 
 #endif

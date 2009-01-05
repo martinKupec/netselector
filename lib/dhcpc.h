@@ -23,8 +23,8 @@
 #define BOOTPS_PORT	67
 #define BOOTPC_PORT 68
 
-void dhcpc_offers(pcap_t *hndl, const char *interface);
 void dhcpc_packet(const uint8_t *pkt, shell *sh);
+int dhcpc_init(pcap_t *hndl, const char *interface);
 
 #endif
 

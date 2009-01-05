@@ -7,4 +7,4 @@ NSU_OBJS := $(patsubst %.y,%.tab.o,$(BISON_SRC)) $(patsubst %.lex,%.yy.o,$(LEX_S
 NSU_OBJS += $(patsubst %.c,%.o,$(shell find netsummoner/ -iname '*.c' | sort | sed -e 's/^netsummoner\///'))
 
 obj/netsummoner/netsummoner: $(addprefix obj/netsummoner/,$(NSU_OBJS)) $(NETLIB)
-obj/netsummoner/netsummoner: LIBS+=-lpcap -liw
+obj/netsummoner/netsummoner: LIBS+=-lpcap -liw -lwpa_ctrl -lwpa_common -lwpa_unix

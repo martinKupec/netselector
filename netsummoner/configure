@@ -31,7 +31,10 @@ network "generic-dhcp" 1 {
 }
 
 action "home" {
-	execute "/home/magon/scripts/tutu.sh"
+	execute "/home/magon/scripts/tutu.sh" "1"
+    use wpa "/etc/wpa/config"
+	execute "/home/magon/scripts/tutu.sh" "2"
+	execute "/home/magon/scripts/tutu.sh" "3"
 }
 
 action "shutdown" {
@@ -43,8 +46,8 @@ action "dhcp" {
 }
 
 action "school" {
-	execute "/home/magon/scripts/tutu.sh"
-	use eap "/etc/eap/configure"
+	execute "/home/magon/scripts/tutu.sh" "55"
+	use wpa "/etc/eap/configure"
 	use dhcp
 }
 

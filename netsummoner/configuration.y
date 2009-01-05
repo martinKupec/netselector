@@ -13,7 +13,7 @@ static inline void new_network(char *name, unsigned target_score, struct rule_se
 static inline void new_action(char *name, struct action_plan *plan);
 static inline void new_assembly(char *net_n, char *act_n, int type);
 
-unsigned counter, counter_max;
+unsigned counter, counter_max, aargs;
 extern char const *yytext;
 %}
 
@@ -21,6 +21,7 @@ extern char const *yytext;
 
 %union {
 	char *str;
+	char **pstr;
 	int num;
 
 	struct rule_ret rule_ret;
@@ -34,7 +35,7 @@ extern char const *yytext;
 %token <str> VAL_STR VAL_IP VAL_MAC
 
 %token <num> NETWORK ACTION ASSEMBLY
-%token <num> WIFI STP GATEWAY DHCPS NBNS EAP WLCCP CDP DNS
+%token <num> WIFI STP GATEWAY DHCPS NBNS WPA EAP WLCCP CDP DNS
 %token <num> MAC ESSID NAME IP ROOT 
 %token <num> DHCP ID EXECUTE NOT USE MATCH DOWN ON
 
@@ -44,6 +45,7 @@ extern char const *yytext;
 %type <action_plan> execute use
 %type <paction_plan> astmt
 %type <num> atype
+%type <pstr> executen
 
 %%
 
@@ -131,11 +133,14 @@ astmt: /* empty */ { $$ = malloc(sizeof(struct action_plan) * counter); counter_
 	| use { counter++; } astmt { $$ = $3; $3[counter].type = $1.type; $3[counter].data = $1.data; counter--; }
 	;
 
-execute: EXECUTE VAL_STR { $$.type = $1; $$.data = $2; }
+execute: EXECUTE { aargs = 0; } executen { $$.type = $1; $$.data = $3; }
+	;
+executen: /* empty */ { $$ = malloc(sizeof(char *) * (aargs + 1)); $$[aargs] = NULL; aargs--; }
+	| VAL_STR { aargs++; } executen { $$ = $3; $3[aargs] = $1; aargs--; }
 	;
 
 use: USE DHCP { $$.type = $2; $$.data = NULL; }
-	| USE EAP VAL_STR { $$.type = $2; $$.data = $3; }
+	| USE WPA VAL_STR { $$.type = $2; $$.data = $3; }
 	;
 
 assembly: ASSEMBLY VAL_STR atype VAL_STR { new_assembly($2, $4, $3); }

@@ -43,9 +43,16 @@ struct whole_packet {
 	struct dhcp_packet dhcp;
 } PACKED;
 
-static int sent_offer;
+struct dhcpc_args {
+	int randfd;
+	pcap_t *phndl;
+	uint8_t hwaddr[6];
+};
 
-/* Stole from udhcp */
+static struct dhcpc_args dhcpc_arg;
+static struct module_info module_dhcpc;
+
+/* Stolen from udhcp */
 /* Compute Internet Checksum for "count" bytes
  *         beginning at location "addr".
  */
@@ -99,7 +106,7 @@ static int dhcp_option_add(uint8_t *opt_field, uint8_t opt_type, uint8_t len, ui
 static void packet_fill_offer(struct dhcp_packet *pkt, const uint32_t xid, const uint8_t *hwaddr) {
 	int opt_ptr;
 	uint8_t type;
-	const char vendor_id[] = "NetScout";
+	const char vendor_id[] = "Netselector";
 
 	pkt->op = BOOTPREQUEST;
 	pkt->htype = 1;
@@ -152,38 +159,50 @@ static void packet_finalize(struct whole_packet *pkt, const uint8_t *hwaddr, con
 	pkt->ip.check = checksum(&pkt->ip, sizeof(struct iphdr));
 }
 
-/*
- * Sends DHCP discovver, once in 254 calls, stops when received offer
- */
-void dhcpc_offers(pcap_t *hndl, const char *interface) {
-	if(!sent_offer) {
-		int fd;
-		uint32_t rid;
-		struct ifreq ifr;
-		struct whole_packet wpkt;
+static int dhcpc_callback(struct dhcpc_args *arg) {
+	uint32_t rid;
+	struct whole_packet wpkt;
 
-		fd = open("/dev/urandom", 0);
-		read(fd, &rid, sizeof(uint32_t));
-		close(fd);
+	read(arg->randfd, &rid, sizeof(uint32_t));
 
-		//Get HW addr
-        strcpy(ifr.ifr_name, interface);
-		if(ioctl(*((int *) hndl), SIOCGIFHWADDR, &ifr) < 0) {
-			fprintf(stderr, "HW address unresolvable error:%s\n", strerror(errno));
-			return;
-		}
+	packet_fill_offer(&wpkt.dhcp, rid, arg->hwaddr);
+	packet_finalize(&wpkt, arg->hwaddr, (uint16_t) rid);
 
-		packet_fill_offer(&wpkt.dhcp, rid, (uint8_t *) ifr.ifr_hwaddr.sa_data);
-		packet_finalize(&wpkt, (uint8_t *) ifr.ifr_hwaddr.sa_data, (uint16_t) rid);
-		if(pcap_sendpacket(hndl, (uint8_t *) &wpkt, sizeof(struct whole_packet)) ) {
-			fprintf(stderr, "Unable to send DHCP Discover\n");
-		}
-		sent_offer = 254;
-	} else {
-		if(sent_offer != 255) {
-			sent_offer--;
-		}
+	if(pcap_sendpacket(arg->phndl, (uint8_t *) &wpkt, sizeof(struct whole_packet)) ) {
+		//fprintf(stderr, "Unable to send DHCP Discover\n");
+		close(arg->randfd);
+		return 1;
 	}
+	return 0;
+}
+
+int dhcpc_init(pcap_t *hndl, const char *interface) {
+	int devfd;
+	struct ifreq ifr;
+
+	dhcpc_arg.randfd = open("/dev/urandom", 0);
+	if(dhcpc_arg.randfd < 0) {
+		return 1;
+	}
+
+	//Get HW addr
+	devfd = *((int *) (hndl));
+	strcpy(ifr.ifr_name, interface);
+	if(ioctl(devfd, SIOCGIFHWADDR, &ifr) < 0) {
+		return 2;
+	}
+
+	memcpy(dhcpc_arg.hwaddr, (uint8_t *) ifr.ifr_hwaddr.sa_data, 6);
+	dhcpc_arg.phndl = hndl;
+
+	module_dhcpc.fnc = (dispatch_callback) dhcpc_callback;
+	module_dhcpc.arg = &dhcpc_arg;
+	module_dhcpc.fd = -1;
+	module_dhcpc.timeout = 250;
+	if(register_module(&module_dhcpc)) {
+		return 3;
+	}
+	return 0;
 }
 
 /*
@@ -218,7 +237,7 @@ void dhcpc_packet(const uint8_t *pkt, shell *sh) {
 			break;
 		case DHCP_TYPE_MESSAGE:
 			//Probably Offer, but doesn't really matter
-			sent_offer = 255; //Stop sending discovery
+			//FIXME Stop sending discovery
 			break;
 		case DHCP_TYPE_SERVER_ID: //DHCP Server Identifier
 			info->server_IP = *((uint32_t *)(options + i + 2));
@@ -233,3 +252,4 @@ void dhcpc_packet(const uint8_t *pkt, shell *sh) {
 	sh->to.higher_type = IP_TYPE_NONE;
 	sh->to.higher_data = NULL;
 }
+
