@@ -116,7 +116,7 @@ static int exec_work(struct exec_args *arg) {
 
 	if(arg->actual >= arg->plan->count) {
 		printf("Execute done\n");
-		return 0;
+		return 11;
 	}
 
 	switch(plan->type) {
@@ -124,11 +124,12 @@ static int exec_work(struct exec_args *arg) {
 		printf("Execute\n");
 		prog = plan->data;
 
+/*
 		clearenv();//FIXME consider this line
 		setenv("NETWORK", arg->net->name, 1);
 		setenv("PLAN", exec_arg.plan->name, 1);
 		//set_env(arg->net->rules, arg->net->count);
-
+*/
 		signal(SIGCHLD, signal_child);
 
 		module_exec.fd = -1;
@@ -162,11 +163,10 @@ static int exec_work(struct exec_args *arg) {
 			return 1;
 		}
 		if(arg->action == EXEC_MATCH) {
-			wpa_connect();
+			wpa_connect("K2");
 		} else {
 			wpa_disconnect();
 		}
-		return 1;
 		break;
 	default:
 		fprintf(stderr, "Unknown action type %d\n", plan->type);
@@ -207,7 +207,12 @@ static int exec_wait(struct exec_args *arg) {
 		return 2;
 		break;
 	case WPA:
-		wpa_message();
+		status = wpa_message();
+		if(!status) {
+			arg->actual++;
+		} else {
+			return 0;
+		}
 		break;
 	}
 	return exec_work(arg);
@@ -233,9 +238,6 @@ int execute(struct network *net, unsigned action) {
 	exec_arg.actual = 0;
 	exec_arg.action = action;
 	exec_arg.net = net;
-
-	set_env(net->rules, net->count);
-
 
 	module_exec.fnc = (dispatch_callback) exec_wait;
 	module_exec.arg = &exec_arg;

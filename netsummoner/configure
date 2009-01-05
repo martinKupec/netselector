@@ -11,7 +11,7 @@ network "home" 100 {
 
 network "school" 100 {
 	eap mac 00:1D:E5:8D:26:C0 100
-	eap mac 00:13:CE:67:26:52 100
+	eap mac 00:13:CE:67:26:52 100 #my mac :-)
 	eap mac 00:1D:E5:2F:1B:E0 100
 	dns ip 195.113.21.1 50
 	wlccp mac 00:1D:A1:CD:13:96 100
@@ -20,6 +20,7 @@ network "school" 100 {
 	wlccp mac 00:15:C6:43:B0:02 100
     wlccp mac 00:15:63:66:E5:45 100
 	cdp id "cisco" 100
+    wifi essid "K2" 100 # work
 }
 
 network "dorms" 100 {
@@ -46,9 +47,9 @@ action "dhcp" {
 }
 
 action "school" {
+    use wpa "/etc/wpa/config"
 	execute "/home/magon/scripts/tutu.sh" "55"
-	use wpa "/etc/eap/configure"
-	use dhcp
+	execute "/home/magon/scripts/tutu.sh" "2"
 }
 
 assembly "dorms" on match "school"

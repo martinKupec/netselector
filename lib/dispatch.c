@@ -131,10 +131,13 @@ int dispatch_loop(void) {
 				if(mod_reg[i].mod->fd > 0) { //Valid fd ?
 					if(FD_ISSET(mod_reg[i].mod->fd, &fd_read)) {
 						i -= call_module(mod_reg + i);
+						continue;
 					}
-				} else if(mod_reg[i].timeout_left > 0) { //Valid timeout ?
+				}
+				if(mod_reg[i].timeout_left > 0) { //Valid timeout ?
 					if(mod_reg[i].timeout_left <= wait_min) { // timed out
 						i -= call_module(mod_reg + i);
+						continue;
 					} else {
 						mod_reg[i].timeout_left -= wait_min;
 					}
