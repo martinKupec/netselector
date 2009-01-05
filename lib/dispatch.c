@@ -65,8 +65,14 @@ static void unregister_module(const struct module_info *reg) {
 	}
 }
 
-static int call_module(struct module_register *module) {
-	if(module->mod->fnc(module->mod->arg)) {
+static int call_module(const size_t i) {
+	int ret;
+	struct module_register *module = mod_reg + i;
+
+	ret = module->mod->fnc(module->mod->arg);
+	module = mod_reg + i; //needed because of reallocing of mod_reg
+
+	if(ret) {
 		unregister_module(module->mod);
 		return 1;
 	} else {
@@ -120,7 +126,7 @@ int dispatch_loop(void) {
 				//timeout -1 specifies wait for signal
 				for(i = 0; i < mod_reg_size; i++) {
 					if(mod_reg[i].mod->timeout == -1) {
-						i -= call_module(mod_reg + i);
+						i -= call_module(i);
 					}
 				}
 			} else {
@@ -130,13 +136,13 @@ int dispatch_loop(void) {
 			for(i = 0; i < mod_reg_size; i++) {
 				if(mod_reg[i].mod->fd > 0) { //Valid fd ?
 					if(FD_ISSET(mod_reg[i].mod->fd, &fd_read)) {
-						i -= call_module(mod_reg + i);
+						i -= call_module(i);
 						continue;
 					}
 				}
 				if(mod_reg[i].timeout_left > 0) { //Valid timeout ?
 					if(mod_reg[i].timeout_left <= wait_min) { // timed out
-						i -= call_module(mod_reg + i);
+						i -= call_module(i);
 						continue;
 					} else {
 						mod_reg[i].timeout_left -= wait_min;

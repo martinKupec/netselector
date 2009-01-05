@@ -124,12 +124,12 @@ static int exec_work(struct exec_args *arg) {
 		printf("Execute\n");
 		prog = plan->data;
 
-/*
+
 		clearenv();//FIXME consider this line
 		setenv("NETWORK", arg->net->name, 1);
 		setenv("PLAN", exec_arg.plan->name, 1);
-		//set_env(arg->net->rules, arg->net->count);
-*/
+		set_env(arg->net->rules, arg->net->count);
+
 		signal(SIGCHLD, signal_child);
 
 		module_exec.fd = -1;

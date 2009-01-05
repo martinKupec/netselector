@@ -2,7 +2,7 @@ CC := gcc
 LEX := flex
 YACC := bison
 CLANG := -std=gnu99
-COPT := -O2 -fstrict-aliasing -finline-limit=2000
+COPT := -O0 -fstrict-aliasing -finline-limit=2000
 CWARNS := -Wall -W -Wno-parentheses -Wstrict-prototypes -Wmissing-prototypes -Winline
 LOPT =
 LIBS = -L misc/
