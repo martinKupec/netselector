@@ -21,10 +21,12 @@ network "school" 100 {
     wlccp mac 00:15:63:66:E5:45 100
 	cdp id "cisco" 100
     wifi essid "K2" 100 # work
+    wifi essid "stirka.cznet.cz" 100
 }
 
 network "dorms" 100 {
     gateway mac 00:0E:0C:70:DA:62 100
+    eap mac 00:1A:6C:F9:95:A1 100
 }
 
 network "generic-dhcp" 1 {
@@ -47,7 +49,7 @@ action "dhcp" {
 }
 
 action "school" {
-#   use wpa "/etc/wpa/config"
+    use wpa "eth0" "KOLEJ"
 	execute "/home/magon/scripts/tutu.sh" "55"
 	execute "/home/magon/scripts/tutu.sh" "2"
 }

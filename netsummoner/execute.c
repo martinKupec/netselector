@@ -113,6 +113,7 @@ static void set_env(const struct rule_set *rules, unsigned count) {
 static int exec_work(struct exec_args *arg) {
 	struct action_plan *plan = arg->plan->actions + arg->actual;
 	char **prog;
+	int ret;
 
 	if(arg->actual >= arg->plan->count) {
 		printf("Execute done\n");
@@ -157,13 +158,16 @@ static int exec_work(struct exec_args *arg) {
 	case WPA:
 		printf("WPA\n");
 
-		module_exec.fd = wpa_init();
+		module_exec.fd = wpa_init(((const char **)(plan->data))[0]);
 		if(module_exec.fd < 0) {
 			fprintf(stderr, "WPA init error\n");
 			return 1;
 		}
 		if(arg->action == EXEC_MATCH) {
-			wpa_connect("K2");
+			if((ret = wpa_connect(((const char **)(plan->data))[1]))) {
+				printf("WPA Connect returned %d\n", ret);
+				return 1;
+			}
 		} else {
 			wpa_disconnect();
 		}

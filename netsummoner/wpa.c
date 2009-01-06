@@ -20,17 +20,17 @@ static int wpa_get_id(const char *list, const char *ssid) {
 	return atoi(line);
 }
 
-int wpa_init(void) {
-	const char ctrl_path[] = "/var/run/wpa_supplicant/eth2";
-	wpa_ctl = wpa_ctrl_open(ctrl_path);
+int wpa_init(const char *iface) {
+	char ctrl_path[100] = "/var/run/wpa_supplicant/";
 
+	strcat(ctrl_path, iface);
+	wpa_ctl = wpa_ctrl_open(ctrl_path);
 	if(!wpa_ctl) {
 		return -1;
 	}
 	if(wpa_ctrl_attach(wpa_ctl)) {
 		return -2;
 	}
-	printf("wpa fd %d\n", wpa_ctrl_get_fd(wpa_ctl));
 	return wpa_ctrl_get_fd(wpa_ctl);
 }
 
@@ -43,29 +43,25 @@ int wpa_connect(const char *ssid) {
 	msg[len - 1] = '\0';
 	nid = wpa_get_id(msg, ssid);
 	if(nid < 0) {
+		printf("MSG: %s\n SSID: %s\n", msg, ssid);
 		return 1;
 	}
-	printf("Network ID %d\n", nid);
-
 	ret = sprintf(msg, "SELECT_NETWORK %d", nid);
 	len = MSG_LEN;
 	ret = wpa_ctrl_request(wpa_ctl, msg, ret, msg, &len, NULL);
 	msg[len - 1] = '\0';
-	if(!strcmp("OK", msg)) {
-		printf("Network %s selected\n", ssid);
-	} else {
+	if(strcmp("OK", msg)) {
 		printf("request returned %d and %s\n", ret, msg);
 		return 2;
 	}
 	len = MSG_LEN;
 	ret = wpa_ctrl_request(wpa_ctl, "REASSOCIATE", 11, msg, &len, NULL);
 	msg[len - 1] = '\0';
-	if(!strcmp("OK", msg)) {
-		printf("Associating...\n");
-	} else {
+	if(strcmp("OK", msg)) {
 		printf("request returned %d and %s\n", ret, msg);
 		return 2;
 	}
+	printf("Network %s selected\n", ssid);
 	return 0;
 }
 

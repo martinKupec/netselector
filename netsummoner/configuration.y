@@ -140,7 +140,8 @@ executen: /* empty */ { $$ = malloc(sizeof(char *) * (aargs + 1)); $$[aargs] = N
 	;
 
 use: USE DHCP { $$.type = $2; $$.data = NULL; }
-	| USE WPA VAL_STR { $$.type = $2; $$.data = $3; }
+	| USE WPA VAL_STR VAL_STR { $$.type = $2; $$.data = malloc(sizeof(char *) * 2);
+								((char **)($$.data))[0] = $3; ((char **)($$.data))[1] = $4; }
 	;
 
 assembly: ASSEMBLY VAL_STR atype VAL_STR { new_assembly($2, $4, $3); }
