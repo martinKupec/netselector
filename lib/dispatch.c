@@ -24,6 +24,7 @@ uint64_t start_time;
  */
 static void signal_hndl(int sig UNUSED) {
 	signal_stop = 1;
+	raise(SIGUSR1);
 	signal(SIGINT, SIG_DFL);
 }
 
@@ -91,11 +92,13 @@ int dispatch_loop(void) {
 	fd_set fd_read;
 
 	signal(SIGINT, signal_hndl);
+	signal(SIGUSR1, SIG_IGN);
 
 	gettimeofday(&time_start, NULL);
 	start_time = time_start.tv_sec * 1000 + (time_start.tv_usec / 1000);
 
 	sigfillset(&sigmask);
+	sigdelset(&sigmask, SIGINT);
 	sigprocmask(SIG_SETMASK, &sigmask, &sigorig);
 	sigemptyset(&sigmask);
 

@@ -35,7 +35,7 @@ network "generic-dhcp" 1 {
 
 action "home" {
 	execute "/home/magon/scripts/tutu.sh" "1"
-#    use wpa "/etc/wpa/config"
+    use wpa "eth2" "magon-home"
 	execute "/home/magon/scripts/tutu.sh" "2"
 	execute "/home/magon/scripts/tutu.sh" "3"
 }

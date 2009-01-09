@@ -8,6 +8,8 @@
 
 struct wpa_ctrl *wpa_ctl;
 
+struct module_info module_wpa;
+
 static int wpa_get_id(const char *list, const char *ssid) {
 	char *line;
 	line = strstr(list, ssid);
@@ -20,6 +22,14 @@ static int wpa_get_id(const char *list, const char *ssid) {
 	return atoi(line);
 }
 
+static int wpa_callback(void *arg UNUSED) {
+	int ret;
+
+	ret = wpa_message();
+	return 0;
+}
+
+
 int wpa_init(const char *iface) {
 	char ctrl_path[100] = "/var/run/wpa_supplicant/";
 
@@ -31,12 +41,16 @@ int wpa_init(const char *iface) {
 	if(wpa_ctrl_attach(wpa_ctl)) {
 		return -2;
 	}
-	return wpa_ctrl_get_fd(wpa_ctl);
+	module_wpa.fnc = wpa_callback;
+	module_wpa.arg = NULL;
+	module_wpa.fd = wpa_ctrl_get_fd(wpa_ctl); 
+	module_wpa.timeout = -2;
+	return module_wpa.fd;
 }
 
 int wpa_connect(const char *ssid) {
 	int ret, nid;
-	size_t len = MSG_LEN;
+	size_t len = MSG_LEN - 1;
 	char msg[MSG_LEN];
 
 	ret = wpa_ctrl_request(wpa_ctl, "LIST_NETWORKS", 13, msg, &len, NULL);
@@ -46,16 +60,19 @@ int wpa_connect(const char *ssid) {
 		printf("MSG: %s\n SSID: %s\n", msg, ssid);
 		return 1;
 	}
+
+	wpa_disconnect();
+
 	ret = sprintf(msg, "SELECT_NETWORK %d", nid);
-	len = MSG_LEN;
+	len = MSG_LEN - 1;
 	ret = wpa_ctrl_request(wpa_ctl, msg, ret, msg, &len, NULL);
 	msg[len - 1] = '\0';
 	if(strcmp("OK", msg)) {
 		printf("request returned %d and %s\n", ret, msg);
 		return 2;
 	}
-	len = MSG_LEN;
-	ret = wpa_ctrl_request(wpa_ctl, "REASSOCIATE", 11, msg, &len, NULL);
+	len = MSG_LEN - 1;
+	ret = wpa_ctrl_request(wpa_ctl, "RECONNECT", 9, msg, &len, NULL);
 	msg[len - 1] = '\0';
 	if(strcmp("OK", msg)) {
 		printf("request returned %d and %s\n", ret, msg);
@@ -66,14 +83,29 @@ int wpa_connect(const char *ssid) {
 }
 
 int wpa_disconnect(void) {
+	char msg[] = "DISCONNECT";
+	int ret;
+	size_t len = MSG_LEN - 1;
+
+	ret = wpa_ctrl_request(wpa_ctl, msg, sizeof(msg), msg, &len, NULL);
+	msg[len - 1] = '\0';
+	if(strcmp("OK", msg)) {
+		printf("request DISCONNECT returned %d and %s\n", len, msg);
+		return 1;
+	}
 	return 0;
 }
 
 int wpa_message(void) {
 	size_t len = MSG_LEN - 1;
 	char msg[MSG_LEN];
+	int i;
 
-	//i = wpa_ctrl_pending(wpa_ctl); //it just select...so no need if i just did it
+	i = wpa_ctrl_pending(wpa_ctl); //it just select...so no need if i just did it
+	if(i < 1) {
+		printf("WPA NOTHING TO DO\n");
+		return 1;
+	}
 
 	if(wpa_ctrl_recv(wpa_ctl, msg, &len)) {
 		fprintf(stderr, "WPA recv failed\n");
@@ -82,8 +114,16 @@ int wpa_message(void) {
 	msg[len] = '\0';
 	printf("received: %s\n", msg);
 	if(strstr(msg, WPA_EVENT_CONNECTED)) {
-		printf("CONNECTED\n");
-		return 0;
+		if(register_module(&module_wpa)) {
+			fprintf(stderr, "Unable to register module WPA\n");
+			return 3;
+		} else {
+			printf("CONNECTED\n");
+			return 0;
+		}
+	}
+	if(strstr(msg, WPA_EVENT_DISCONNECTED)) {
+		printf("DISCONNECTED\n");
 	}
 	return 1;
 }
