@@ -82,7 +82,9 @@ static int call_module(const size_t i) {
 }
 
 int dispatch_loop(void) {
-	struct timeval timeout, time;
+	struct timeval time_start, time_end;
+	struct timespec timeout;
+	sigset_t sigmask, sigorig;
 	int retval;
 	size_t i;
 	int fd_max, wait_min;
@@ -90,8 +92,12 @@ int dispatch_loop(void) {
 
 	signal(SIGINT, signal_hndl);
 
-	gettimeofday(&time, NULL);
-	start_time = time.tv_sec * 1000 + (time.tv_usec / 1000);
+	gettimeofday(&time_start, NULL);
+	start_time = time_start.tv_sec * 1000 + (time_start.tv_usec / 1000);
+
+	sigfillset(&sigmask);
+	sigprocmask(SIG_SETMASK, &sigmask, &sigorig);
+	sigemptyset(&sigmask);
 
 	while(!signal_stop) {
 		FD_ZERO(&fd_read);
@@ -111,15 +117,15 @@ int dispatch_loop(void) {
 			}
 		}
 		timeout.tv_sec = 0;
-		timeout.tv_usec = wait_min * 1000;
-		gettimeofday(&time, NULL); //FIXME global flag and pselect
-		retval = select(fd_max + 1, &fd_read, NULL, NULL, &timeout);
-		gettimeofday(&timeout, NULL);
-		wait_min = (timeout.tv_sec - time.tv_sec) * 1000;
-		if(timeout.tv_usec < time.tv_usec) {
-			wait_min -= (time.tv_usec - timeout.tv_usec) / 1000;
+		timeout.tv_nsec = wait_min * 1000L * 1000;
+		gettimeofday(&time_start, NULL); //FIXME global flag and pselect
+		retval = pselect(fd_max + 1, &fd_read, NULL, NULL, &timeout, &sigmask);
+		gettimeofday(&time_end, NULL);
+		wait_min = (time_end.tv_sec - time_start.tv_sec) * 1000;
+		if(time_end.tv_usec < time_start.tv_usec) {
+			wait_min -= (time_start.tv_usec - time_end.tv_usec) / 1000;
 		} else {
-			wait_min += (timeout.tv_usec - time.tv_usec) / 1000;
+			wait_min += (time_end.tv_usec - time_start.tv_usec) / 1000;
 		}
 		if(retval < 0) { //probably interrupted by signal
 			if(errno == EINTR) { //interrupted by signal
@@ -151,6 +157,7 @@ int dispatch_loop(void) {
 			}
 		}
 	}
+	sigprocmask(SIG_SETMASK, &sigorig, NULL);
 	signal(SIGINT, SIG_DFL);
 	return 0;
 }
