@@ -12,6 +12,7 @@
 #include "lib/wifi.h"
 #include "lib/dhcpc.h"
 #include "lib/link.h"
+#include "netlink.h"
 
 int yyparse(void);
 extern FILE *yyin;
@@ -133,7 +134,6 @@ int main(int argc, char **argv) {
 		}
 	}
 
-
 	list_init(&list_network);
 	list_init(&list_action);
 	list_init(&list_assembly);
@@ -148,6 +148,8 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Errors in configuration file\n");
 		return 1;
 	}
+
+	netlink_init();
 
 	ret = pcap_init(&np);
 	switch(ret) {

@@ -164,7 +164,7 @@ static int exec_work(struct exec_args *arg) {
 			return 1;
 		}
 		if(arg->action == EXEC_MATCH) {
-			if((ret = wpa_connect(((const char **)(plan->data))[1]))) {
+			if((ret = wpa_connect(((const char **)(plan->data))[1], arg->net))) {
 				printf("WPA Connect returned %d\n", ret);
 				return 1;
 			}
@@ -208,7 +208,7 @@ static int exec_wait(struct exec_args *arg) {
 		arg->actual++;
 		break;
 	case DHCP:
-		return 2;
+	return 2;
 		break;
 	case WPA:
 		status = wpa_message();
