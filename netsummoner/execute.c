@@ -208,7 +208,7 @@ static int exec_wait(struct exec_args *arg) {
 		arg->actual++;
 		break;
 	case DHCP:
-	return 2;
+		return 2;
 		break;
 	case WPA:
 		status = wpa_message();
@@ -222,15 +222,51 @@ static int exec_wait(struct exec_args *arg) {
 	return exec_work(arg);
 }
 
+static struct combination *choose_combination(struct assembly *ass) {
+	size_t i;
+	struct combination *cmbret = NULL;
+
+	for(i = 0; i < ass->count; i++) {
+		switch(ass->comb[i].condition) {
+		case LINK:
+			//FIXME ask if link up, that use this
+			cmbret = ass->comb + i;
+			break;
+		case FALLBACK:
+			if(!cmbret) {
+				cmbret = ass->comb + i;
+			}
+			break;
+		}
+	}
+	return cmbret;
+}
+
 int execute(struct network *net, unsigned action) {
+	struct assembly *anode;
+	struct combination *comb;
+
+	LIST_WALK(anode, &list_assembly) {
+		if(anode->net == net) {
+			break;
+		}
+	}
+	if(LIST_END(anode, &list_assembly))  {
+		fprintf(stderr, "Execute: Unable to find assembly for network: %s\n", net->name);
+		return 3;
+	}
+
+	printf("Executing assembly %s\n", anode->name);
+
+	comb = choose_combination(anode);
 
 	switch(action) {
 	case EXEC_MATCH:
-		exec_arg.plan = net->match;
+		exec_arg.plan = comb->up;
 		setenv("ACTION", "UP", 1);
 		break;
 	case EXEC_DOWN:
-		exec_arg.plan = net->down;
+		exec_arg.plan = comb->down;
 		setenv("ACTION", "DOWN", 1);
 	default:
 		return 1;

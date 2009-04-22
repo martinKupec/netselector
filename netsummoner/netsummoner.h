@@ -13,11 +13,6 @@ struct rule {
 	void *data;
 };
 
-struct rule_ret {
-	struct rule *items;
-	unsigned count;
-};
-
 struct rule_set {
 	unsigned matched;
 	int type;
@@ -31,7 +26,6 @@ struct network {
 	struct rule_set *rules;
 	char *name;
 	unsigned target_score;
-	struct action *match, *down;
 };
 
 struct action_plan {
@@ -51,6 +45,40 @@ struct arbiter_queue {
 	struct stat_wifi *wnode;
 };
 
-extern struct list list_network, list_action;
+struct combination {
+	int condition;
+	void *condition_args;
+	struct action *up;
+	bool down_reversed;
+	struct action *down;
+};
+
+struct assembly {
+	char *name;
+	struct network *net;
+	unsigned count;
+	struct combination *comb;
+};
+
+extern struct list list_network, list_action, list_assembly;
+
+//Structures for yacc
+struct assembly_combination { 
+	char *network;
+	unsigned count;
+	struct combination *comb;
+};
+
+struct rev_action {
+	struct action *action;
+	bool rev;
+};
+
+struct rule_ret {
+	struct rule *items;
+	unsigned count;
+};
+
+
 
 #endif

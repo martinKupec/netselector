@@ -37,9 +37,11 @@
 "execute"		{ yylval.num = EXECUTE; return EXECUTE; }
 "not"			{ yylval.num = NOT; return NOT; }
 "use"			{ yylval.num = USE; return USE; }
-"on"			{ yylval.num = ON; return ON; }
-"match"			{ yylval.num = MATCH; return MATCH; }
+"link"			{ yylval.num = LINK; return LINK; }
+"rev"			{ yylval.num = REV; return REV; }
+"up"			{ yylval.num = UP; return UP; }
 "down"			{ yylval.num = DOWN; return DOWN; }
+"fallback"		{ yylval.num = FALLBACK; return FALLBACK; }
 ([[:digit:]]+\.){3}[[:digit:]]+	{ yylval.str = strdup(yytext); return VAL_IP; }
 ([a-fA-F0-9]+:)+[a-fA-F0-9]+	{ yylval.str = strdup(yytext); return VAL_MAC; }
 [[:digit:]]+	{ yylval.num = atoi(yytext); return VAL_NUM; }

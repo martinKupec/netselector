@@ -4,7 +4,7 @@ network "home" 100 {
 	wifi mac 00:0E:2E:64:66:58 50
 	wifi essid "magon-home" 50
 	stp root 80:00:00:0E:2E:64:66:58 100
-	gateway	ip 192.168.0.1 mac 00:0E:2E:64:66:58 50
+	gateway ip 192.168.0.1 mac 00:0E:2E:64:66:58 50
 	dhcps mac 00:0E:2E:64:66:58 50
 	nbns name "ZALOHY" 50
 }
@@ -18,26 +18,34 @@ network "school" 100 {
 	wlccp mac 00:1D:E5:8D:26:C0 100
 	wlccp mac 00:19:2F:7E:50:8C 100
 	wlccp mac 00:15:C6:43:B0:02 100
-    wlccp mac 00:15:63:66:E5:45 100
+	wlccp mac 00:15:63:66:E5:45 100
 	cdp id "cisco" 100
-    wifi essid "K2" 100 # work
-    wifi essid "stirka.cznet.cz" 100
+	wifi essid "K2" 100 # work
+	wifi essid "stirka.cznet.cz" 100
 }
 
 network "dorms" 100 {
-    gateway mac 00:0E:0C:70:DA:62 100
-    eap mac 00:1A:6C:F9:95:A1 100
+	gateway mac 00:0E:0C:70:DA:62 100
+	eap mac 00:1A:6C:F9:95:A1 100
 }
 
 network "generic-dhcp" 1 {
 	dhcps not mac 01:01:01:01:01:01 50
 }
 
-action "home" {
+action "home-wifi" {
 	execute "/home/magon/scripts/tutu.sh" "1"
-    use wpa "eth2" "magon-home"
+	use wpa "wlan0" "magon-home"
 	execute "/home/magon/scripts/tutu.sh" "2"
 	execute "/home/magon/scripts/tutu.sh" "3"
+}
+
+action "home-wire" {
+	execute "/home/magon/scripts/tutu.sh" "42"
+}
+
+action "home-down" {
+	execute "/home/magon/scripts/tutu.sh" "-42"
 }
 
 action "shutdown" {
@@ -49,16 +57,16 @@ action "dhcp" {
 }
 
 action "school" {
-    use wpa "eth0" "KOLEJ"
+	use wpa "eth0" "KOLEJ"
 	execute "/home/magon/scripts/tutu.sh" "55"
 	execute "/home/magon/scripts/tutu.sh" "2"
 }
 
-assembly "dorms" on match "school"
-assembly "home" on match "home" #matches passed in ENV VARS
-assembly "home" on down "home" #ENV ACTION="down"
-assembly "school" on match "school"
-assembly "school" on down "school"
-assembly "generic-dhcp" on match "dhcp"
-assembly "generic-dhcp" on down "dhcp"
+assembly "home" {
+	network "school"
+	link "eth0" up "home-wire" down "home-down"
+	fallback up "home-wifi" down rev "home-wifi"
+}
 
+#assembly "home" on match "home" #matches passed in ENV VARS
+#assembly "home" on down "home" #ENV ACTION="down"

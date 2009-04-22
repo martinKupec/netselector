@@ -1,20 +1,25 @@
 %{
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 #include "netsummoner/netsummoner.h"
 #include "lib/netselector.h"
 #include "lib/list.h"
+
+#define combcpy(t, s) memcpy(t, s, sizeof(struct combination))
 
 int yylex(void);
 void yyerror (char const *err);
 void make_rule_ret(struct rule_ret *rule, unsigned count, ...);
 static inline void new_network(char *name, unsigned target_score, struct rule_set *rules);
 static inline void new_action(char *name, struct action_plan *plan);
-static inline void new_assembly(char *net_n, char *act_n, int type);
+static inline void new_assembly(char *name, struct assembly_combination *cmb);
+static inline struct action *find_action(const char *name);
 
 unsigned counter, counter_max, aargs;
 extern char const *yytext;
+
 %}
 
 %locations
@@ -29,6 +34,10 @@ extern char const *yytext;
 	struct rule_set *rule_set;
 	struct action_plan action_plan;
 	struct action_plan *paction_plan;
+	struct assembly_combination assembly_combination;
+	struct combination combination;
+	struct action *paction;
+	struct rev_action rev_action;
 }
 
 %token <num> VAL_NUM
@@ -37,15 +46,19 @@ extern char const *yytext;
 %token <num> NETWORK ACTION ASSEMBLY
 %token <num> WIFI STP GATEWAY DHCPS NBNS WPA EAP WLCCP CDP DNS
 %token <num> MAC ESSID NAME IP ROOT 
-%token <num> DHCP ID EXECUTE NOT USE MATCH DOWN ON
+%token <num> DHCP ID EXECUTE NOT USE
+%token <num> LINK UP DOWN REV FALLBACK
 
 %type <rule_set> nstmt nstmtn
 %type <rule_ret> wifi stp gateway dhcps nbns eap wlccp cdp dns
 %type <item> ip mac essid
 %type <action_plan> execute use
-%type <paction_plan> astmt
-%type <num> atype
+%type <paction_plan> actstmt
+%type <assembly_combination> asmstmt
 %type <pstr> executen
+%type <combination> asmupdown
+%type <paction> asmup
+%type <rev_action> asmdown
 
 %%
 
@@ -125,12 +138,12 @@ essid: ESSID VAL_STR { $$.type = $1; $$.data = $2; }
 	| NOT ESSID VAL_STR { $$.type = -$2; $$.data = $3; }
 	;
 
-action: ACTION VAL_STR { counter = 0; } '{' astmt '}' { new_action($2, $5); }
+action: ACTION VAL_STR { counter = 0; } '{' actstmt '}' { new_action($2, $5); }
 	;
 
-astmt: /* empty */ { $$ = malloc(sizeof(struct action_plan) * counter); counter_max = counter--; }
-	| execute { counter++; } astmt { $$ = $3; $3[counter].type = $1.type; $3[counter].data = $1.data; counter--; }
-	| use { counter++; } astmt { $$ = $3; $3[counter].type = $1.type; $3[counter].data = $1.data; counter--; }
+actstmt: /* empty */ { $$ = malloc(sizeof(struct action_plan) * counter); counter_max = counter--; }
+	| execute { counter++; } actstmt { $$ = $3; $3[counter].type = $1.type; $3[counter].data = $1.data; counter--; }
+	| use { counter++; } actstmt { $$ = $3; $3[counter].type = $1.type; $3[counter].data = $1.data; counter--; }
 	;
 
 execute: EXECUTE { aargs = 0; } executen { $$.type = $1; $$.data = $3; }
@@ -144,13 +157,26 @@ use: USE DHCP { $$.type = $2; $$.data = NULL; }
 								((char **)($$.data))[0] = $3; ((char **)($$.data))[1] = $4; }
 	;
 
-assembly: ASSEMBLY VAL_STR atype VAL_STR { new_assembly($2, $4, $3); }
+assembly: ASSEMBLY VAL_STR { counter = 0; } '{' asmstmt '}' { new_assembly($2, &$5); }
 	;
 
-atype: ON MATCH { $$ = $2; }
-	| ON DOWN { $$ = $2; }
+asmstmt: /* empty */ { $$.comb = malloc(sizeof(struct combination) * counter); $$.count = counter--;}
+	| NETWORK VAL_STR asmstmt { $$.network = $2; $$.count = $3.count; $$.comb = $3.comb; }
+	| LINK VAL_STR asmupdown { counter++; } asmstmt { $$.count = $5.count; $$.network = $5.network; $$.comb = $5.comb;
+		$3.condition = $1; $3.condition_args = $2; combcpy($$.comb + counter, &$3); counter--; }
+	| FALLBACK asmupdown { counter++; } asmstmt { $$.count = $4.count; $$.network = $4.network; $$.comb = $4.comb;
+		$2.condition = $1; $2.condition_args = NULL; combcpy($$.comb + counter, &$2); counter--; }
 	;
 
+asmupdown: asmup asmdown { $$.up = $1; $$.down = $2.action; $$.down_reversed = $2.rev; }
+	| asmdown asmup { $$.up = $2; $$.down = $1.action; $$.down_reversed = $1.rev; }
+	;
+asmup: UP VAL_STR { $$ = find_action($2); }
+	;
+
+asmdown: DOWN VAL_STR { $$.action = find_action($2); $$.rev = false; }
+	| DOWN REV VAL_STR { $$.action = find_action($3); $$.rev = true; }
+	;
 %%
 
 void yyerror (char const *err UNUSED) {
@@ -233,44 +259,43 @@ static inline void new_action(char *name, struct action_plan *plan) {
 	act->count = counter_max;
 }
 
-static inline void new_assembly(char *net_n, char *act_n, int type) {
-	struct network *nnode;
+static inline struct action *find_action(const char *name) {
 	struct action *anode;
 
-	LIST_WALK(nnode, &list_network) {
-		if(!strcmp(nnode->name, net_n)) {
-			break;
-		}
-	}
-	if(LIST_END(nnode, &list_network))  {
-		fprintf(stderr, "Assembly: Unable to find network: %s\n", net_n); //FIXME what about crashing?
-		return;
-	}
 	LIST_WALK(anode, &list_action) {
-		if(!strcmp(anode->name, act_n)) {
+		if(!strcmp(anode->name, name)) {
 			break;
 		}
 	}
 	if(LIST_END(anode, &list_action))  {
-		fprintf(stderr, "Assembly: Unable to find action: %s\n", act_n); //FIXME what about crashing?
+		fprintf(stderr, "Assembly: Unable to find action: %s\n", name);
+		exit(1);
+		return NULL;
+	}
+	return anode;
+}
+
+static inline void new_assembly(char *name, struct assembly_combination *cmb) {
+	struct network *nnode;
+	struct assembly *ass;
+
+	ass = (struct assembly *) (list_add_after(list_assembly.head.prev, sizeof(struct assembly)));
+	ass->name = name;
+
+	LIST_WALK(nnode, &list_network) {
+		if(!strcmp(nnode->name, cmb->network)) {
+			break;
+		}
+	}
+	if(LIST_END(nnode, &list_network))  {
+		fprintf(stderr, "Assembly: Unable to find network: %s\n", cmb->network);
+		exit(1);
 		return;
 	}
+	ass->net = nnode;
 
-	switch(type) {
-	case MATCH:
-		if(nnode->match) {
-			fprintf(stderr, "Assembly: Redefining match on network %s\n", net_n);
-		}
-		nnode->match = anode;
-		break;
-	case DOWN:
-		if(nnode->down) {
-			fprintf(stderr, "Assembly: Redefining down on network %s\n", net_n);
-		}
-		nnode->down = anode;
-		break;
-	default:
-		fprintf(stderr, "Assembly: Unknown action\n"); //FIXME what about crashing?
-		break;
-	}
+	ass->count = cmb->count;
+	ass->comb = cmb->comb;
+	return ;
 }
+

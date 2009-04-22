@@ -75,8 +75,13 @@ static void netsummoner_score(const unsigned score UNUSED) {
 	net = arbiter(&aqueue);
 	if(net && !connection) {
 		switch(execute(net, EXEC_MATCH)) {
-		case 0:
+		case 0: //Execute went well
 			connection = true;
+			break;
+		case 3: //No assembly
+			fprintf(stderr, "Disabling network %s\n", net->name);
+			net->count = 0; //FIXME somehow properly free used memory
+			net->target_score = 1;
 			break;
 		default:
 			break;
@@ -149,7 +154,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	netlink_init();
+	netlink_init(np.dev);
 
 	ret = pcap_init(&np);
 	switch(ret) {
