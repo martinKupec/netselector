@@ -63,7 +63,7 @@ action "school" {
 }
 
 assembly "home" {
-	network "school"
+	network "home"
 	link "eth0" up "home-wire" down "home-down"
 	fallback up "home-wifi" down rev "home-wifi"
 }

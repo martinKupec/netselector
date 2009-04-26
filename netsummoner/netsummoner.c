@@ -154,7 +154,12 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	netlink_init(np.dev);
+	ret = netlink_init(np.dev);
+
+	if(ret != 0) {
+		fprintf(stderr, "Error in netlink module %d\n", ret);
+		return 1;
+	}
 
 	ret = pcap_init(&np);
 	switch(ret) {

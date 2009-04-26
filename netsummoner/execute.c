@@ -7,6 +7,7 @@
 #include "lib/netselector.h"
 #include "execute.h"
 #include "wpa.h"
+#include "netlink.h"
 #include "configuration.tab.h"
 
 struct exec_args {
@@ -229,8 +230,9 @@ static struct combination *choose_combination(struct assembly *ass) {
 	for(i = 0; i < ass->count; i++) {
 		switch(ass->comb[i].condition) {
 		case LINK:
-			//FIXME ask if link up, that use this
-			cmbret = ass->comb + i;
+			if(netlink_is_up(ass->comb[i].condition_args) == 1) {
+				cmbret = ass->comb + i;
+			}
 			break;
 		case FALLBACK:
 			if(!cmbret) {

@@ -17,6 +17,8 @@ struct netlink_args {
 	int fd;
 	struct sockaddr_nl sa;
 	char ifname[IFNAME_SIZE];
+	int if_index;
+	int link_up;
 };
 
 struct netlink_args netlink_arg;
@@ -24,11 +26,53 @@ struct module_info module_netlink;
 
 static void netlink_up(struct netlink_args *arg) {
 	printf("NETLINK UP\n");
+	arg->link_up = 1;
 }
 
 static void netlink_down(struct netlink_args *arg) {
 	printf("NETLINK DOWN\n");
+	arg->link_up = 0;
 }
+
+int netlink_is_up(const char *intf) {
+	if(!strcmp(netlink_arg.ifname, intf)) {
+		return netlink_arg.link_up;
+	} else {
+		return 3;
+	}
+}
+static int netlink_send_request(struct netlink_args *arg) {
+	uint8_t req[1024];
+	struct nlmsghdr *nh = (struct nlmsghdr *) req;
+	struct ifinfomsg *info;
+	struct iovec iov = { (void *) nh, nh->nlmsg_len }; //Length need's to change later
+	struct sockaddr_nl sa;
+	struct msghdr msg = { (void *)&sa, sizeof(struct sockaddr_nl), &iov, 1, NULL, 0, 0 };
+
+	bzero(&sa, sizeof(struct sockaddr_nl));
+	sa.nl_family = AF_NETLINK; //Others zero
+
+	memset(&req, 0, sizeof(req)); 
+	nh->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
+	nh->nlmsg_type = RTM_GETLINK;
+	nh->nlmsg_flags = NLM_F_REQUEST;
+	nh->nlmsg_pid = 0; // Kernel
+	nh->nlmsg_seq = 1; //This is first and last message we send
+
+	info = NLMSG_DATA(nh);
+	info->ifi_family = AF_UNSPEC;
+	info->ifi_index = arg->if_index;
+	info->ifi_type = 0;
+	info->ifi_flags = 0;
+	info->ifi_change = 0xFFFFFFFF;
+
+	iov.iov_len = nh->nlmsg_len;
+	if(sendmsg(arg->fd, &msg, 0) == -1) {
+		perror("Netlink send error: ");
+		return -1;
+	}
+	return 0;
+};
 
 static int netlink_callback(struct netlink_args *arg) {
 	char buf[4096];
@@ -37,13 +81,13 @@ static int netlink_callback(struct netlink_args *arg) {
 	size_t len;
 	struct nlmsghdr *nh;
 	struct ifinfomsg *info;
-	struct rtattr *data;
-	char intf[IFNAME_SIZE];
+	//struct rtattr *data;
+	//char intf[IFNAME_SIZE];
 
 	len = recvmsg(arg->fd, &msg, 0);
 
 	if(((ssize_t) (len)) < 0) {
-		printf("Error from recvmgs\n");
+		perror("Error from recvmgs: ");
 		return 0;
 	}
 
@@ -51,7 +95,7 @@ static int netlink_callback(struct netlink_args *arg) {
 		if(nh->nlmsg_type == NLMSG_DONE) {
 			break;
 		}
-		switch(nh->nlmsg_type) {
+		/*switch(nh->nlmsg_type) {
 		case NLMSG_ERROR:
 			printf("ERROR\n");
 			return 0;
@@ -65,13 +109,20 @@ static int netlink_callback(struct netlink_args *arg) {
 		case RTM_GETLINK:
 			printf("NT GET\n");
 			break;
-		}
+		}*/
 		if(!NLMSG_OK(nh, len)) {
 			printf("message not OK\n");
 			return 0;
 		}
 		info = NLMSG_DATA(nh);
-		printf("Index %d type %d up %d flags %d change %d\n", info->ifi_index,
+		if(arg->if_index == info->ifi_index) {
+			if(info->ifi_flags & IFF_RUNNING) {
+				netlink_up(arg);
+			} else {
+				netlink_down(arg);
+			}
+		}
+		/*printf("Index %d type %d up %d flags %d change %d\n", info->ifi_index,
 			info->ifi_type, info->ifi_flags & IFF_UP, info->ifi_flags, info->ifi_change);
 		printf("Inf flags:\n\
 IFF_UP %d\n\
@@ -149,14 +200,7 @@ IFF_ECHO %d\n"
 				}
 			}
 			data = RTA_NEXT(data, len);
-		}
-		if(!strcmp(arg->ifname, intf)) {
-			if(info->ifi_flags & IFF_RUNNING) {
-				netlink_up(arg);
-			} else {
-				netlink_down(arg);
-			}
-		}
+		}*/
 	}
 	return 0;
 }
@@ -173,14 +217,27 @@ int netlink_init(const char *intf) {
 	netlink_arg.sa.nl_family = AF_NETLINK;
 	netlink_arg.sa.nl_groups = RTMGRP_LINK;
 	netlink_arg.sa.nl_pid = getpid();
-	bind(fd, (struct sockaddr *) &netlink_arg.sa, sizeof(struct sockaddr_nl));
+	if(bind(fd, (struct sockaddr *) &netlink_arg.sa, sizeof(struct sockaddr_nl))) {
+		perror("Netlink bind: ");
+		return -1;
+	}
 
 	strcpy(netlink_arg.ifname, intf);
+	netlink_arg.fd = fd;
+	netlink_arg.link_up = 0;
+	netlink_arg.if_index = if_nametoindex(intf);
 
 	module_netlink.fnc = (dispatch_callback) netlink_callback;
 	module_netlink.arg = &netlink_arg;
 	module_netlink.fd = fd; 
 	module_netlink.timeout = -2;
-	return fd;
+
+	netlink_send_request(&netlink_arg);
+
+	if(register_module(&module_netlink)) {
+		fprintf(stderr, "Unable to register netlink module\n");
+		return 1;
+	}
+	return 0;
 }
 
