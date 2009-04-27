@@ -2,4 +2,4 @@ do proper nbns packet reading
 matching IP and MAC is somewhat weird
 implement NOT statement
 verbose netsummoner is too verbose
-make intf up when starting
+finish netlink - exec right execute upon netlink events

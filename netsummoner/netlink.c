@@ -25,12 +25,12 @@ struct netlink_args netlink_arg;
 struct module_info module_netlink;
 
 static void netlink_up(struct netlink_args *arg) {
-	printf("NETLINK UP\n");
+	printf("Interface %s carrier detected\n", arg->ifname);
 	arg->link_up = 1;
 }
 
 static void netlink_down(struct netlink_args *arg) {
-	printf("NETLINK DOWN\n");
+	printf("Interface %s no-carrier\n", arg->ifname);
 	arg->link_up = 0;
 }
 
@@ -41,7 +41,8 @@ int netlink_is_up(const char *intf) {
 		return 3;
 	}
 }
-static int netlink_send_request(struct netlink_args *arg) {
+
+static int netlink_send_msg(struct netlink_args *arg, const int type, const int flags) {
 	uint8_t req[1024];
 	struct nlmsghdr *nh = (struct nlmsghdr *) req;
 	struct ifinfomsg *info;
@@ -52,9 +53,9 @@ static int netlink_send_request(struct netlink_args *arg) {
 	bzero(&sa, sizeof(struct sockaddr_nl));
 	sa.nl_family = AF_NETLINK; //Others zero
 
-	memset(&req, 0, sizeof(req)); 
+	bzero(&req, sizeof(req)); 
 	nh->nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
-	nh->nlmsg_type = RTM_GETLINK;
+	nh->nlmsg_type = type;
 	nh->nlmsg_flags = NLM_F_REQUEST;
 	nh->nlmsg_pid = 0; // Kernel
 	nh->nlmsg_seq = 1; //This is first and last message we send
@@ -63,7 +64,7 @@ static int netlink_send_request(struct netlink_args *arg) {
 	info->ifi_family = AF_UNSPEC;
 	info->ifi_index = arg->if_index;
 	info->ifi_type = 0;
-	info->ifi_flags = 0;
+	info->ifi_flags = flags;
 	info->ifi_change = 0xFFFFFFFF;
 
 	iov.iov_len = nh->nlmsg_len;
@@ -72,7 +73,15 @@ static int netlink_send_request(struct netlink_args *arg) {
 		return -1;
 	}
 	return 0;
-};
+}
+
+static int netlink_send_request(struct netlink_args *arg) {
+	return netlink_send_msg(arg, RTM_GETLINK, 0);
+}
+
+static int netlink_up_intf(struct netlink_args *arg) {
+	return netlink_send_msg(arg, RTM_NEWLINK, IFF_UP);
+}
 
 static int netlink_callback(struct netlink_args *arg) {
 	char buf[4096];
@@ -109,21 +118,21 @@ static int netlink_callback(struct netlink_args *arg) {
 		case RTM_GETLINK:
 			printf("NT GET\n");
 			break;
-		}*/
+		}
 		if(!NLMSG_OK(nh, len)) {
 			printf("message not OK\n");
 			return 0;
-		}
+		}*/
 		info = NLMSG_DATA(nh);
 		if(arg->if_index == info->ifi_index) {
-			if(info->ifi_flags & IFF_RUNNING) {
+			if(info->ifi_flags & IFF_LOWER_UP) {
 				netlink_up(arg);
 			} else {
 				netlink_down(arg);
 			}
 		}
-		/*printf("Index %d type %d up %d flags %d change %d\n", info->ifi_index,
-			info->ifi_type, info->ifi_flags & IFF_UP, info->ifi_flags, info->ifi_change);
+		/*printf("Index %d type %d flags %d change %d\n", info->ifi_index,
+			info->ifi_type, info->ifi_flags, info->ifi_change);
 		printf("Inf flags:\n\
 IFF_UP %d\n\
 IFF_BROADCAST %d\n\
@@ -210,7 +219,7 @@ int netlink_init(const char *intf) {
 
 	fd = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
 	if(fd < 0) {
-		return -1;
+		return 1;
 	}
 
 	bzero(&netlink_arg.sa, sizeof(struct sockaddr_nl));
@@ -219,7 +228,7 @@ int netlink_init(const char *intf) {
 	netlink_arg.sa.nl_pid = getpid();
 	if(bind(fd, (struct sockaddr *) &netlink_arg.sa, sizeof(struct sockaddr_nl))) {
 		perror("Netlink bind: ");
-		return -1;
+		return 1;
 	}
 
 	strcpy(netlink_arg.ifname, intf);
@@ -232,7 +241,15 @@ int netlink_init(const char *intf) {
 	module_netlink.fd = fd; 
 	module_netlink.timeout = -2;
 
-	netlink_send_request(&netlink_arg);
+	printf("Bringing interface %s up\n", intf);
+	if(netlink_up_intf(&netlink_arg)) {
+		fprintf(stderr, "Failed to bring %s up\n", intf);
+		return 2;
+	}
+	if(netlink_send_request(&netlink_arg)) {
+		fprintf(stderr, "Unable to send netlink request\n");
+		return 3;
+	}
 
 	if(register_module(&module_netlink)) {
 		fprintf(stderr, "Unable to register netlink module\n");
