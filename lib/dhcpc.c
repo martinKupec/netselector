@@ -137,8 +137,6 @@ static void packet_finalize(struct whole_packet *pkt, const uint8_t *hwaddr, con
 	memcpy(pkt->eth.ether_shost, hwaddr, 6);
 	pkt->eth.ether_type = htons(ETHERTYPE_IP);
 
-	bzero(&pkt->ip, sizeof(struct iphdr));
-
 	pkt->ip.protocol = IPPROTO_UDP;
 	pkt->ip.saddr = 0; //From noone
 	pkt->ip.daddr = 0xFFFFFFFF; //To everyone
@@ -146,7 +144,8 @@ static void packet_finalize(struct whole_packet *pkt, const uint8_t *hwaddr, con
 	pkt->udp.source = htons(BOOTPC_PORT);
 	pkt->udp.dest = htons(BOOTPS_PORT);
 	pkt->udp.len = pkt->ip.tot_len;
-	pkt->udp.check = checksum(&pkt->ip, sizeof(struct whole_packet) - sizeof(struct ether_header));
+	pkt->udp.check = checksum(&pkt->ip, sizeof(struct iphdr) + sizeof(struct udphdr));
+	//pkt->udp.check = checksum(&pkt->ip, sizeof(struct whole_packet) - sizeof(struct ether_header));
 		//small cheat, checksum whole ip header instead of pseudo-one, but with all zeros - except pseudo-one
 
 	pkt->ip.ihl = sizeof(struct iphdr) >> 2; //Ip header size in quads
@@ -162,6 +161,8 @@ static void packet_finalize(struct whole_packet *pkt, const uint8_t *hwaddr, con
 static int dhcpc_callback(struct dhcpc_args *arg) {
 	uint32_t rid;
 	struct whole_packet wpkt;
+
+	bzero(&wpkt, sizeof(wpkt));
 
 	read(arg->randfd, &rid, sizeof(uint32_t));
 
