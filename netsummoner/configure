@@ -1,5 +1,28 @@
 #comments
 
+network "leskovec" 100 {
+	gateway mac 00:14:85:28:38:69 100
+	gateway ip 10.142.1.1 50
+	nbns name "HARMONY" 50
+	wifi essid "leskovec" 100
+	wifi mac 00:4F:62:23:8F:3C 100
+}
+
+action "leskovec-wifi" {
+	use wpa "wlan0" "leskovec"
+	use dhcp
+}
+
+action "leskovec-eth" {
+	use dhcp
+}
+
+assembly "leskovec" {
+	network "leskovec"
+	link "eth0" up "leskovec-eth" down rev "leskovec-eth"
+	fallback up "leskovec-wifi" down rev "leskovec-wifi"
+}
+
 network "home" 100 {
 	wifi mac 00:0E:2E:64:66:58 50
 	wifi essid "magon-home" 50

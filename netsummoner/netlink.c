@@ -12,37 +12,45 @@
 #include "netsummoner.h"
 
 #define IFNAME_SIZE 10
+#define INTF_NO 3
 
-struct netlink_args {
-	int fd;
-	struct sockaddr_nl sa;
+struct intf_data {
 	char ifname[IFNAME_SIZE];
 	int if_index;
 	int link_up;
 };
 
+struct netlink_args {
+	int fd;
+	struct sockaddr_nl sa;
+	struct intf_data intf[INTF_NO];
+};
+
 struct netlink_args netlink_arg;
 struct module_info module_netlink;
 
-static void netlink_up(struct netlink_args *arg) {
-	printf("Interface %s carrier detected\n", arg->ifname);
-	arg->link_up = 1;
+static void netlink_up(struct netlink_args *arg, const int intf) {
+	printf("Interface %s carrier detected\n", arg->intf[intf].ifname);
+	arg->intf[intf].link_up = 1;
 }
 
-static void netlink_down(struct netlink_args *arg) {
-	printf("Interface %s no-carrier\n", arg->ifname);
-	arg->link_up = 0;
+static void netlink_down(struct netlink_args *arg, const int intf) {
+	printf("Interface %s no-carrier\n", arg->intf[intf].ifname);
+	arg->intf[intf].link_up = 0;
 }
 
 int netlink_is_up(const char *intf) {
-	if(!strcmp(netlink_arg.ifname, intf)) {
-		return netlink_arg.link_up;
-	} else {
-		return 3;
+	int i;
+
+	for(i = 0; i < INTF_NO; i++) {
+		if(!strcmp(netlink_arg.intf[i].ifname, intf)) {
+			return netlink_arg.intf[i].link_up;
+		}
 	}
+	return 3;
 }
 
-static int netlink_send_msg(struct netlink_args *arg, const int type, const int flags) {
+static int netlink_send_msg(const struct netlink_args *arg, const int intf, const int type, const int flags) {
 	uint8_t req[1024];
 	struct nlmsghdr *nh = (struct nlmsghdr *) req;
 	struct ifinfomsg *info;
@@ -62,7 +70,7 @@ static int netlink_send_msg(struct netlink_args *arg, const int type, const int 
 
 	info = NLMSG_DATA(nh);
 	info->ifi_family = AF_UNSPEC;
-	info->ifi_index = arg->if_index;
+	info->ifi_index = arg->intf[intf].if_index;
 	info->ifi_type = 0;
 	info->ifi_flags = flags;
 	info->ifi_change = 0xFFFFFFFF;
@@ -75,15 +83,16 @@ static int netlink_send_msg(struct netlink_args *arg, const int type, const int 
 	return 0;
 }
 
-static int netlink_send_request(struct netlink_args *arg) {
-	return netlink_send_msg(arg, RTM_GETLINK, 0);
+static int netlink_send_request(const struct netlink_args *arg, const int intf) {
+	return netlink_send_msg(arg, intf, RTM_GETLINK, 0);
 }
 
-static int netlink_up_intf(struct netlink_args *arg) {
-	return netlink_send_msg(arg, RTM_NEWLINK, IFF_UP);
+static int netlink_up_intf(const struct netlink_args *arg, const int intf) {
+	return netlink_send_msg(arg, intf, RTM_NEWLINK, IFF_UP);
 }
 
 static int netlink_callback(struct netlink_args *arg) {
+	int i;
 	char buf[4096];
 	struct iovec iov = { buf, sizeof(buf) };
 	struct msghdr msg = { (void *)&arg->sa, sizeof(struct sockaddr_nl), &iov, 1, NULL, 0, 0 };
@@ -124,11 +133,13 @@ static int netlink_callback(struct netlink_args *arg) {
 			return 0;
 		}*/
 		info = NLMSG_DATA(nh);
-		if(arg->if_index == info->ifi_index) {
-			if(info->ifi_flags & IFF_LOWER_UP) {
-				netlink_up(arg);
-			} else {
-				netlink_down(arg);
+		for(i = 0; i < INTF_NO; i++) {
+			if(arg->intf[i].if_index == info->ifi_index) {
+				if(info->ifi_flags & IFF_LOWER_UP) {
+					netlink_up(arg, i);
+				} else {
+					netlink_down(arg, i);
+				}
 			}
 		}
 		/*printf("Index %d type %d flags %d change %d\n", info->ifi_index,
@@ -214,8 +225,9 @@ IFF_ECHO %d\n"
 	return 0;
 }
 
-int netlink_init(const char *intf) {
+int netlink_init(const char **intf) {
 	int fd;
+	int i;
 
 	fd = socket(AF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE);
 	if(fd < 0) {
@@ -231,26 +243,41 @@ int netlink_init(const char *intf) {
 		return 1;
 	}
 
-	strcpy(netlink_arg.ifname, intf);
+	for(i = 0; i < INTF_NO; i++) {
+		if(intf[i] == NULL) {
+			break;
+		}
+		strcpy(netlink_arg.intf[i].ifname, intf[i]);
+		netlink_arg.intf[i].link_up = 0;
+		netlink_arg.intf[i].if_index = if_nametoindex(intf[i]);
+	}
+	for(; i < INTF_NO; i++) {
+		netlink_arg.intf[i].ifname[0] = '\0';
+		netlink_arg.intf[i].link_up = 0;
+		netlink_arg.intf[i].if_index = -1;
+	}
+
 	netlink_arg.fd = fd;
-	netlink_arg.link_up = 0;
-	netlink_arg.if_index = if_nametoindex(intf);
 
 	module_netlink.fnc = (dispatch_callback) netlink_callback;
 	module_netlink.arg = &netlink_arg;
 	module_netlink.fd = fd; 
 	module_netlink.timeout = -2;
 
-	printf("Bringing interface %s up\n", intf);
-	if(netlink_up_intf(&netlink_arg)) {
-		fprintf(stderr, "Failed to bring %s up\n", intf);
-		return 2;
+	for(i = 0; i < INTF_NO; i++) {
+		if(netlink_arg.intf[i].ifname[0] == '\0') {
+			continue;
+		}
+		printf("Bringing interface %s up\n", netlink_arg.intf[i].ifname);
+		if(netlink_up_intf(&netlink_arg, i)) {
+			fprintf(stderr, "Failed to bring %s up\n", netlink_arg.intf[i].ifname);
+			return 2;
+		}
+		if(netlink_send_request(&netlink_arg, i)) {
+			fprintf(stderr, "Unable to send netlink request\n");
+			return 3;
+		}
 	}
-	if(netlink_send_request(&netlink_arg)) {
-		fprintf(stderr, "Unable to send netlink request\n");
-		return 3;
-	}
-
 	if(register_module(&module_netlink)) {
 		fprintf(stderr, "Unable to register netlink module\n");
 		return 1;

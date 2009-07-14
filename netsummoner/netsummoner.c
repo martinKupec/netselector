@@ -111,17 +111,20 @@ int main(int argc, char **argv) {
 	struct net_pcap np = { .score_fnc = netsummoner_score };
 	char *wifidev = NULL;
 	bool dhcp_active = 0;
+	const char *interfaces[3] = {};
 	
 	while ((opt = getopt(argc, argv, "hvpw:f:i:d")) >= 0) {
 		switch(opt) {
 		case 'w':
 			wifidev = optarg;
+			interfaces[1] = wifidev;
 			break;
 		case 'f':
 			np.file = optarg;
 			break;
 		case 'i':
 			np.dev = optarg;
+			interfaces[0] = np.dev;
 			break;
 		case 'd':
 			dhcp_active = 1;
@@ -154,7 +157,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	ret = netlink_init(np.dev);
+	ret = netlink_init(interfaces);
 
 	if(ret != 0) {
 		fprintf(stderr, "Error in netlink module %d\n", ret);
