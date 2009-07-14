@@ -60,14 +60,14 @@ static uint16_t checksum(const void *addr, int count) {
 	register int32_t sum = 0;
 	const uint16_t *source = (const uint16_t *) addr;
 
-	while (count > 1) {
+	while(count > 1) {
 		/*  This is the inner loop */
 		sum += *source++;
 		count -= 2;
 	}
 
 	/*  Add left-over byte, if any */
-	if (count > 0) {
+	if(count > 0) {
 		/* Make sure that the left-over byte is added correctly both
 		 * with little and big endian hosts */
 		uint16_t tmp = 0;
@@ -75,7 +75,7 @@ static uint16_t checksum(const void *addr, int count) {
 		sum += tmp;
 	}
 	/*  Fold 32-bit sum to 16 bits */
-	while (sum >> 16) {
+	while(sum >> 16) {
 		sum = (sum & 0xffff) + (sum >> 16);
 	}
 

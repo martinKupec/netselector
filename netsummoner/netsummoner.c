@@ -78,6 +78,7 @@ static void netsummoner_score(const unsigned score UNUSED) {
 		case 0: //Execute went well
 			connection = true;
 			break;
+		case 1: //Exec wirh error
 		case 3: //No assembly
 			fprintf(stderr, "Disabling network %s\n", net->name);
 			net->count = 0; //FIXME somehow properly free used memory

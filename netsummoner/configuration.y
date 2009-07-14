@@ -219,10 +219,13 @@ void make_rule_ret(struct rule_ret *rule, unsigned count, ...) {
 			uint8_t *mac = i->data;
 			unsigned a;
 
-			while(*str) {
+			for(;;) {
 				sscanf(str, "%X", &a);
-				str += 3;
 				*mac++ = a;
+				if(str[2] == '\0') {
+					break;
+				}
+				str += 3;
 			}
 		}
 			break;

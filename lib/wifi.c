@@ -35,6 +35,7 @@ static int wifi_callback(struct wifi_args *arg) {
 	gettimeofday(&time, NULL);
 	now = (uint32_t) (time.tv_sec * 1000 + (time.tv_usec / 1000)) - start_time;
 	for(iter = arg->wsh.result; iter != NULL; iter = tmp) {
+		node = iter->ap_addr.sa_data[0];
 		node = get_node_wifi((uint8_t *) iter->ap_addr.sa_data);
 		memcpy(node->essid, iter->b.essid, 16);
 		she.lower_node = node;
@@ -45,6 +46,7 @@ static int wifi_callback(struct wifi_args *arg) {
 		tmp = iter->next;
 		free(iter);
 	}
+	arg->wsh.result = NULL;
 
 	return 0; 
 }

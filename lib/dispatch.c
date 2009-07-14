@@ -132,6 +132,9 @@ int dispatch_loop(void) {
 		}
 		if(retval < 0) { //probably interrupted by signal
 			if(errno == EINTR) { //interrupted by signal
+				if(signal_stop) { //interrupted by user
+					break;
+				}
 				//timeout -1 specifies wait for signal
 				for(i = 0; i < mod_reg_size; i++) {
 					if(mod_reg[i].mod->timeout == -1) {
