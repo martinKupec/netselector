@@ -250,7 +250,7 @@ int main(int argc, char **argv) {
 	module_netsummoner.timeout = -2; //Disabled
 	signal_callback = netsummoner_signal;
 
-	if(register_module(&module_netsummoner)) {
+	if(register_module(&module_netsummoner, "Netsummoner")) {
 		fprintf(stderr, "Unable to register netsummoner module\n");
 		return 1;
 	}

@@ -154,7 +154,7 @@ struct module_info {
 	int timeout;
 };
 
-int register_module(struct module_info *reg);
+int register_module(struct module_info *reg, const char *ident);
 void dispatch_stop(void);
 int dispatch_loop(void);
 

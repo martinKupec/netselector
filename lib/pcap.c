@@ -90,7 +90,7 @@ int pcap_init(struct net_pcap *np) {
 	module_pcap.fnc = (dispatch_callback) pcap_callback;
 	module_pcap.arg = &cat_arg;
 	module_pcap.fd = pcap_get_selectable_fd(np->hndl);
-	if(register_module(&module_pcap)) {
+	if(register_module(&module_pcap, "PCAP")) {
 		return 5;
 	}
 	return 0;

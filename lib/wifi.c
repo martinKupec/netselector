@@ -63,7 +63,7 @@ int wifi_init(char *dev, score_callback score_fnc) {
 	module_wifi.arg = &wifi_arg;
 	module_wifi.fd = wifi_arg.skfd;
 	module_wifi.timeout = 1;
-	if(register_module(&module_wifi)) {
+	if(register_module(&module_wifi, "WiFi")) {
 		return 2;
 	}
 	return 0;

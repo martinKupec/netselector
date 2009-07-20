@@ -137,7 +137,6 @@ static int exec_work(struct exec_args *arg) {
 
 	switch(plan->type) {
 	case EXECUTE:
-		printf("Execute\n");
 		prog = plan->data;
 
 
@@ -176,7 +175,6 @@ static int exec_work(struct exec_args *arg) {
 		return 1;
 		break;
 	case WPA:
-		printf("WPA\n");
 		if(arg->action == EXEC_MATCH) {
 			module_exec.fd = wpa_init(((const char **)(plan->data))[0]);
 			if(module_exec.fd < 0) {
@@ -189,6 +187,10 @@ static int exec_work(struct exec_args *arg) {
 			}
 		} else {
 			module_exec.fd = wpa_disconnect();
+			if(module_exec.fd == -1) {
+				arg->actual++;
+				return exec_work(arg);
+			}
 		}
 		break;
 	default:
@@ -237,8 +239,8 @@ static int exec_wait(struct exec_args *arg) {
 		break;
 	case WPA:
 		status = wpa_message();
-		printf("Status %d\n", status);
-		if((status == 0) || (status == 4)) {
+		if(((arg->action == EXEC_MATCH) && (status == 0)) ||
+				((arg->action == EXEC_DOWN) && (status == 4))) {
 			arg->actual++;
 		} else {
 			return 0;
@@ -302,7 +304,7 @@ int execute(struct network *net, unsigned action) {
 		return 3;
 	}
 
-	printf("Executing assembly %s\n", anode->name);
+	printf("Executing assembly %s %s\n", anode->name, action == EXEC_MATCH ? "UP" : "DOWN");
 
 	switch(action) {
 	case EXEC_MATCH:
@@ -313,7 +315,6 @@ int execute(struct network *net, unsigned action) {
 		break;
 	case EXEC_DOWN:
 		comb = select_active_combination(anode);
-		printf("Exec down\n");
 		exec_arg.plan = comb->down;
 		exec_arg.reversed = comb->down_reversed;
 		break;
@@ -332,7 +333,7 @@ int execute(struct network *net, unsigned action) {
 	module_exec.fnc = (dispatch_callback) exec_wait;
 	module_exec.arg = &exec_arg;
 	module_exec.timeout = -1;
-	if(register_module(&module_exec)) {
+	if(register_module(&module_exec, "Exec")) {
 		return 3;
 	}
 	return exec_work(&exec_arg);

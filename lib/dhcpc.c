@@ -199,7 +199,7 @@ int dhcpc_init(pcap_t *hndl, const char *interface) {
 	module_dhcpc.arg = &dhcpc_arg;
 	module_dhcpc.fd = -1;
 	module_dhcpc.timeout = 250;
-	if(register_module(&module_dhcpc)) {
+	if(register_module(&module_dhcpc, "DHCPC")) {
 		return 3;
 	}
 	return 0;

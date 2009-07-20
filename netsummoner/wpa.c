@@ -104,6 +104,8 @@ int wpa_disconnect(void) {
 			return -2;
 		}
 		module_wpa.timeout = -3; //Unregister
+	} else {
+		return -1;
 	}
 	return module_wpa.fd;
 }
@@ -116,7 +118,7 @@ int wpa_message(void) {
 	//FIXME it happens one in a time it gets here inspite of empty input
 	i = wpa_ctrl_pending(wpa_ctl); //it just select...so no need if i just did it
 	if(i < 1) {
-		printf("WPA NOTHING TO DO\n");
+		//printf("WPA NOTHING TO DO\n");
 		return 1;
 	}
 
@@ -127,12 +129,13 @@ int wpa_message(void) {
 	msg[len] = '\0';
 	printf("received: %s\n", msg);
 	if(strstr(msg, WPA_EVENT_CONNECTED)) {
-		if(register_module(&module_wpa)) {
+		if(register_module(&module_wpa, "WPA")) {
 			fprintf(stderr, "Unable to register module WPA\n");
 			return 3;
 		} else {
 			printf("CONNECTED\n");
 			wpa_connected = true;
+			module_wpa.timeout = -2;
 			return 0;
 		}
 	}

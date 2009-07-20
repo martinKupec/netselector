@@ -214,7 +214,7 @@ int netlink_init(const char **intf) {
 			return 3;
 		}
 	}
-	if(register_module(&module_netlink)) {
+	if(register_module(&module_netlink, "Netlink")) {
 		fprintf(stderr, "Unable to register netlink module\n");
 		return 1;
 	}
