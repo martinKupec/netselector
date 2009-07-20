@@ -6,15 +6,19 @@ network "leskovec" 100 {
 	nbns name "HARMONY" 50
 	wifi essid "leskovec" 100
 	wifi mac 00:4F:62:23:8F:3C 100
+
+	dns ip 10.142.1.1 50
+	dhcps mac 00:14:85:28:38:69 100
 }
 
 action "leskovec-wifi" {
+	execute "../scripts/wpa.sh" "wlan0"
 	use wpa "wlan0" "leskovec"
-	use dhcp
+	execute "../scripts/dhcp.sh" "wlan0"
 }
 
 action "leskovec-eth" {
-	use dhcp
+	execute "../scripts/dhcp.sh" "eth0"
 }
 
 assembly "leskovec" {

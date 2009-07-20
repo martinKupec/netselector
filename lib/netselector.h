@@ -175,5 +175,8 @@ struct stat_ether *get_node_ether(const uint8_t *mac);
 struct stat_ip *get_node_ip(const uint32_t ip);
 struct stat_wifi *get_node_wifi(const uint8_t *mac);
 
+typedef void (*signal_callback_fnc)(void);
+
+extern volatile signal_callback_fnc signal_callback;
 #endif
 

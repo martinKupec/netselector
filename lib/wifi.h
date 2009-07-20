@@ -5,6 +5,7 @@
 #include "lib/netselector.h"
 
 int wifi_init(char *dev, score_callback score_fnc);
+void wifi_deinit(void);
 
 #endif
 

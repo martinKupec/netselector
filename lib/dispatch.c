@@ -19,11 +19,17 @@ static struct module_register *mod_reg;
 static size_t mod_reg_size;
 uint64_t start_time;
 
+volatile signal_callback_fnc signal_callback;
+
 /*
  * Signal handler for terminating
  */
 static void signal_hndl(int sig UNUSED) {
-	signal_stop = 1;
+	if(signal_callback) {
+		signal_callback();
+	} else {
+		signal_stop = 1;
+	}
 	raise(SIGUSR1);
 	signal(SIGINT, SIG_DFL);
 }
@@ -47,26 +53,26 @@ int register_module(struct module_info *reg) {
 	return 0;
 }
 
-static void unregister_module(const struct module_info *reg) {
+static void unregister_modules(void) {
 	size_t i;
 
 	for(i = 0; i < mod_reg_size; i++) {
-		if(mod_reg[i].mod == reg) {
+		if(mod_reg[i].mod->timeout == -3) {
 			fprintf(stderr, "Unregistering module\n");
 			memcpy(mod_reg + i, mod_reg + mod_reg_size - 1, sizeof(struct module_register));
 			mod_reg_size--;
+			i--;
 			if(!mod_reg_size) {
 				free(mod_reg);
 				mod_reg = NULL;
 			} else {
 				mod_reg = realloc(mod_reg, sizeof(struct module_register) * mod_reg_size);
 			}
-			break;
 		}
 	}
 }
 
-static int call_module(const size_t i) {
+static void call_module(const size_t i) {
 	int ret;
 	struct module_register *module = mod_reg + i;
 
@@ -74,11 +80,9 @@ static int call_module(const size_t i) {
 	module = mod_reg + i; //needed because of reallocing of mod_reg
 
 	if(ret) {
-		unregister_module(module->mod);
-		return 1;
+		module->mod->timeout = -3; //Unregister
 	} else {
 		module->timeout_left = module->mod->timeout;
-		return 0;
 	}
 }
 
@@ -102,7 +106,7 @@ int dispatch_loop(void) {
 	sigprocmask(SIG_SETMASK, &sigmask, &sigorig);
 	sigemptyset(&sigmask);
 
-	while(!signal_stop) {
+	while(mod_reg_size) {
 		FD_ZERO(&fd_read);
 		fd_max = -1;
 		wait_min = 5000; //5s is sufficently long
@@ -138,7 +142,7 @@ int dispatch_loop(void) {
 				//timeout -1 specifies wait for signal
 				for(i = 0; i < mod_reg_size; i++) {
 					if(mod_reg[i].mod->timeout == -1) {
-						i -= call_module(i);
+						call_module(i);
 					}
 				}
 			} else {
@@ -148,13 +152,13 @@ int dispatch_loop(void) {
 			for(i = 0; i < mod_reg_size; i++) {
 				if(mod_reg[i].mod->fd > 0) { //Valid fd ?
 					if(FD_ISSET(mod_reg[i].mod->fd, &fd_read)) {
-						i -= call_module(i);
+						call_module(i);
 						continue;
 					}
 				}
 				if(mod_reg[i].timeout_left > 0) { //Valid timeout ?
 					if(mod_reg[i].timeout_left <= wait_min) { // timed out
-						i -= call_module(i);
+						call_module(i);
 						continue;
 					} else {
 						mod_reg[i].timeout_left -= wait_min;
@@ -162,6 +166,7 @@ int dispatch_loop(void) {
 				}
 			}
 		}
+		unregister_modules();
 	}
 	sigprocmask(SIG_SETMASK, &sigorig, NULL);
 	signal(SIGINT, SIG_DFL);

@@ -8,6 +8,7 @@ enum {
 	EXEC_DOWN,
 };
 
+int execute_running(void);
 int execute(struct network *net, unsigned action);
 
 #endif

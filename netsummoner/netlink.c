@@ -10,6 +10,7 @@
 
 #include "netlink.h"
 #include "netsummoner.h"
+#include "configuration.tab.h"
 
 #define IFNAME_SIZE 10
 #define INTF_NO 3
@@ -29,14 +30,49 @@ struct netlink_args {
 struct netlink_args netlink_arg;
 struct module_info module_netlink;
 
+static void netlink_change(bool up) {
+	unsigned i;
+	struct assembly *anode;
+
+	LIST_WALK(anode, &list_assembly) {
+		for(i = 0; i < anode->count; i++) {
+			if(anode->comb[i].active) {
+				if(!up && anode->comb[i].condition == LINK) {
+					if(!netlink_is_up(anode->comb[i].condition_args)) {
+						printf("RESETING CONNECTION\n");
+						//reset
+					}
+				} else if(up && anode->comb[i].condition != LINK) {
+					for(i = 0; i < anode->count; i++) {
+						if(anode->comb[i].condition == LINK) {
+							if(netlink_is_up(anode->comb[i].condition_args)) {
+								printf("RESETING CONNECTION\n");
+								//reset
+							}
+							break;
+						}
+					}
+				}
+				break;
+			}
+		}
+	}
+}
+
 static void netlink_up(struct netlink_args *arg, const int intf) {
-	printf("Interface %s carrier detected\n", arg->intf[intf].ifname);
-	arg->intf[intf].link_up = 1;
+	if(arg->intf[intf].link_up) {
+		printf("Interface %s carrier detected\n", arg->intf[intf].ifname);
+		arg->intf[intf].link_up = 1;
+		netlink_change(1);
+	}
 }
 
 static void netlink_down(struct netlink_args *arg, const int intf) {
-	printf("Interface %s no-carrier\n", arg->intf[intf].ifname);
-	arg->intf[intf].link_up = 0;
+	if(!arg->intf[intf].link_up) {
+		printf("Interface %s no-carrier\n", arg->intf[intf].ifname);
+		arg->intf[intf].link_up = 0;
+		netlink_change(0);
+	}
 }
 
 int netlink_is_up(const char *intf) {
@@ -99,8 +135,6 @@ static int netlink_callback(struct netlink_args *arg) {
 	size_t len;
 	struct nlmsghdr *nh;
 	struct ifinfomsg *info;
-	//struct rtattr *data;
-	//char intf[IFNAME_SIZE];
 
 	len = recvmsg(arg->fd, &msg, 0);
 
@@ -113,25 +147,6 @@ static int netlink_callback(struct netlink_args *arg) {
 		if(nh->nlmsg_type == NLMSG_DONE) {
 			break;
 		}
-		/*switch(nh->nlmsg_type) {
-		case NLMSG_ERROR:
-			printf("ERROR\n");
-			return 0;
-			break;
-		case RTM_NEWLINK:
-			printf("NT NEW\n");
-			break;
-		case RTM_DELLINK:
-			printf("NT DEL\n");
-			break;
-		case RTM_GETLINK:
-			printf("NT GET\n");
-			break;
-		}
-		if(!NLMSG_OK(nh, len)) {
-			printf("message not OK\n");
-			return 0;
-		}*/
 		info = NLMSG_DATA(nh);
 		for(i = 0; i < INTF_NO; i++) {
 			if(arg->intf[i].if_index == info->ifi_index) {
@@ -142,85 +157,6 @@ static int netlink_callback(struct netlink_args *arg) {
 				}
 			}
 		}
-		/*printf("Index %d type %d flags %d change %d\n", info->ifi_index,
-			info->ifi_type, info->ifi_flags, info->ifi_change);
-		printf("Inf flags:\n\
-IFF_UP %d\n\
-IFF_BROADCAST %d\n\
-IFF_DEBUG %d\n\
-IFF_LOOPBACK %d\n\
-IFF_POINTOPOINT %d\n\
-IFF_NOTRAILERS %d\n\
-IFF_RUNNING %d\n\
-IFF_NOARP %d\n\
-IFF_PROMISC %d\n\
-IFF_ALLMULTI %d\n\
-IFF_MASTER %d\n\
-IFF_SLAVE %d\n\
-IFF_MULTICAST %d\n\
-IFF_PORTSEL %d\n\
-IFF_AUTOMEDIA %d\n\
-IFF_DYNAMIC %d\n\
-IFF_LOWER_UP %d\n\
-IFF_DORMANT %d\n\
-IFF_ECHO %d\n"
-		,info->ifi_flags & IFF_UP
-		,info->ifi_flags & IFF_BROADCAST
-		,info->ifi_flags & IFF_DEBUG
-		,info->ifi_flags & IFF_LOOPBACK
-		,info->ifi_flags & IFF_POINTOPOINT
-		,info->ifi_flags & IFF_NOTRAILERS
-		,info->ifi_flags & IFF_RUNNING
-		,info->ifi_flags & IFF_NOARP
-		,info->ifi_flags & IFF_PROMISC
-		,info->ifi_flags & IFF_ALLMULTI
-		,info->ifi_flags & IFF_MASTER
-		,info->ifi_flags & IFF_SLAVE
-		,info->ifi_flags & IFF_MULTICAST
-		,info->ifi_flags & IFF_PORTSEL
-		,info->ifi_flags & IFF_AUTOMEDIA
-		,info->ifi_flags & IFF_DYNAMIC
-		,info->ifi_flags & IFF_LOWER_UP
-		,info->ifi_flags & IFF_DORMANT
-		,info->ifi_flags & IFF_ECHO);
-
-
-		data = (struct rtattr*) ((char*) info + NLMSG_ALIGN(sizeof(struct ifinfomsg)));
-		len = NLMSG_PAYLOAD(nh, sizeof(struct ifinfomsg));
-		
-		intf[0] = '\0';
-		while(RTA_OK(data, len)) {
-			switch(data->rta_type) {
-			case IFLA_IFNAME:
-				{
-				int l = RTA_PAYLOAD(data);
-
-				strncpy(intf, RTA_DATA(data), l);
-
-				printf("Inf name %s\n", intf);
-				}
-				break;
-			case IFLA_ADDRESS:
-				printf("Inf address\n");
-				break;
-			case IFLA_BROADCAST:
-				printf("Inf broadcast\n");
-				break;
-			case IFLA_LINK:
-				printf("Inf link %d\n", *((unsigned int*)RTA_DATA(data)));
-				break;
-			case IFLA_QDISC:
-				printf("Inf qdisc\n");
-				break;
-			case IFLA_STATS:
-				{
-				//struct net_device_stats *st = RTA_DATA(data);
-				printf("Inf stat\n");
-				break;
-				}
-			}
-			data = RTA_NEXT(data, len);
-		}*/
 	}
 	return 0;
 }
@@ -285,3 +221,7 @@ int netlink_init(const char **intf) {
 	return 0;
 }
 
+void netlink_deinit(void) {
+	close(netlink_arg.fd);
+	module_netlink.timeout = -3; //Unregister
+}

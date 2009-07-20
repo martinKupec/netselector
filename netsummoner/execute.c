@@ -13,6 +13,7 @@
 struct exec_args {
 	struct action *plan;
 	struct network *net;
+	struct combination *comb;
 	unsigned action;
 	unsigned actual;
 	pid_t pid;
@@ -118,6 +119,12 @@ static int exec_work(struct exec_args *arg) {
 
 	if(arg->actual >= arg->plan->count) {
 		printf("Execute done\n");
+		if(arg->plan == arg->comb->up) {
+			arg->comb->active = true;
+		} else {
+			arg->comb->active = false;
+		}
+		arg->plan = NULL;
 		return 11;
 	}
 
@@ -153,7 +160,7 @@ static int exec_work(struct exec_args *arg) {
 		}
 		break;
 	case DHCP:
-		printf("Dhcp\n");
+		printf("DHCP\n");
 		return 1;
 		break;
 	case WPA:
@@ -244,9 +251,28 @@ static struct combination *choose_combination(struct assembly *ass) {
 	return cmbret;
 }
 
+static struct combination *select_active_combination(struct assembly *ass) {
+	size_t i;
+
+	for(i = 0; i < ass->count; i++) {
+		if(ass->comb[i].active) {
+			return ass->comb + i;
+		}
+	}
+	return NULL;
+}
+
+int execute_running(void) {
+	return !!exec_arg.plan;
+}
+
 int execute(struct network *net, unsigned action) {
 	struct assembly *anode;
 	struct combination *comb;
+
+	if(exec_arg.plan) {
+		return 4;
+	}
 
 	LIST_WALK(anode, &list_assembly) {
 		if(anode->net == net) {
@@ -260,14 +286,15 @@ int execute(struct network *net, unsigned action) {
 
 	printf("Executing assembly %s\n", anode->name);
 
-	comb = choose_combination(anode);
-
 	switch(action) {
 	case EXEC_MATCH:
+		comb = choose_combination(anode);
+		printf("Combination %s\n", comb->condition == LINK ? "ethernet up" : "fallback");
 		exec_arg.plan = comb->up;
 		setenv("ACTION", "UP", 1);
 		break;
 	case EXEC_DOWN:
+		comb = select_active_combination(anode);
 		exec_arg.plan = comb->down;
 		setenv("ACTION", "DOWN", 1);
 	default:
@@ -280,6 +307,7 @@ int execute(struct network *net, unsigned action) {
 	exec_arg.actual = 0;
 	exec_arg.action = action;
 	exec_arg.net = net;
+	exec_arg.comb = comb;
 
 	module_exec.fnc = (dispatch_callback) exec_wait;
 	module_exec.arg = &exec_arg;

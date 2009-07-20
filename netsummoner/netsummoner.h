@@ -51,6 +51,7 @@ struct combination {
 	struct action *up;
 	bool down_reversed;
 	struct action *down;
+	bool active;
 };
 
 struct assembly {

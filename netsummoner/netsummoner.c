@@ -28,6 +28,8 @@ static struct stat_ether ether_node_from, ether_node_to;
 static struct stat_ip ip_node_from, ip_node_to;
 static struct stat_wifi wifi_node;
 
+static struct module_info module_netsummoner;
+
 //static struct stat_ether *list_ether_add(const uint8_t *mac) {
 struct stat_ether *get_node_ether(const uint8_t *mac) {
 	if(!aqueue.enode_f) {
@@ -78,11 +80,14 @@ static void netsummoner_score(const unsigned score UNUSED) {
 		case 0: //Execute went well
 			connection = true;
 			break;
-		case 1: //Exec wirh error
+		case 1: //Exec with error
 		case 3: //No assembly
 			fprintf(stderr, "Disabling network %s\n", net->name);
 			net->count = 0; //FIXME somehow properly free used memory
 			net->target_score = 1;
+			break;
+		case 4:
+			fprintf(stderr, "Execute already running\n");
 			break;
 		default:
 			break;
@@ -94,6 +99,28 @@ static void netsummoner_score(const unsigned score UNUSED) {
 	bzero(&ip_node_from, sizeof(struct stat_ip));
 	bzero(&ip_node_to, sizeof(struct stat_ip));
 	bzero(&wifi_node, sizeof(struct stat_wifi));
+}
+
+static void netsummoner_signal(void) {
+	module_netsummoner.timeout = -1; //Wait for signal
+}
+
+static int netsummoner_callback(void *arg UNUSED) {
+	unsigned i;
+	struct assembly *anode;
+
+	dhcpc_deinit();
+	wifi_deinit();
+	pcap_deinit();
+	netlink_deinit();
+	LIST_WALK(anode, &list_assembly) {
+		for(i = 0; i < anode->count; i++) {
+			if(anode->comb[i].active) {
+				execute(anode->net, EXEC_DOWN);
+			}
+		}
+	}
+	return 1; //Unregister
 }
 
 static void usage(void) {
@@ -217,9 +244,20 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	module_netsummoner.fnc = (dispatch_callback) netsummoner_callback;
+	module_netsummoner.arg = NULL;
+	module_netsummoner.fd = -1;  //Not used
+	module_netsummoner.timeout = -2; //Disabled
+	signal_callback = netsummoner_signal;
+
+	if(register_module(&module_netsummoner)) {
+		fprintf(stderr, "Unable to register netsummoner module\n");
+		return 1;
+	}
+
 	daemonize();
 	(void) dispatch_loop();
-
+	printf("Main loop ended\n");
 	return 0;
 }
 

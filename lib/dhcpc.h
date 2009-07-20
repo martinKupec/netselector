@@ -25,6 +25,7 @@
 
 void dhcpc_packet(const uint8_t *pkt, shell *sh);
 int dhcpc_init(pcap_t *hndl, const char *interface);
+void dhcpc_deinit(void);
 
 #endif
 

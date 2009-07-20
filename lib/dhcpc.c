@@ -144,8 +144,7 @@ static void packet_finalize(struct whole_packet *pkt, const uint8_t *hwaddr, con
 	pkt->udp.source = htons(BOOTPC_PORT);
 	pkt->udp.dest = htons(BOOTPS_PORT);
 	pkt->udp.len = pkt->ip.tot_len;
-	pkt->udp.check = checksum(&pkt->ip, sizeof(struct iphdr) + sizeof(struct udphdr));
-	//pkt->udp.check = checksum(&pkt->ip, sizeof(struct whole_packet) - sizeof(struct ether_header));
+	pkt->udp.check = checksum(&pkt->ip, sizeof(struct whole_packet) - sizeof(struct ether_header));
 		//small cheat, checksum whole ip header instead of pseudo-one, but with all zeros - except pseudo-one
 
 	pkt->ip.ihl = sizeof(struct iphdr) >> 2; //Ip header size in quads
@@ -204,6 +203,11 @@ int dhcpc_init(pcap_t *hndl, const char *interface) {
 		return 3;
 	}
 	return 0;
+}
+
+void dhcpc_deinit(void) {
+	close(dhcpc_arg.randfd);
+	module_dhcpc.timeout = -3;
 }
 
 /*

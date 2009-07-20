@@ -21,7 +21,7 @@ struct catcher_args {
 };
 
 static struct catcher_args cat_arg;
-static struct module_info pcap_module = {
+static struct module_info module_pcap = {
 	.timeout = 0
 };
 
@@ -87,12 +87,16 @@ int pcap_init(struct net_pcap *np) {
 
 	pcap_setnonblock(np->hndl, 1, np->errbuf);
 
-	pcap_module.fnc = (dispatch_callback) pcap_callback;
-	pcap_module.arg = &cat_arg;
-	pcap_module.fd = pcap_get_selectable_fd(np->hndl);
-	if(register_module(&pcap_module)) {
+	module_pcap.fnc = (dispatch_callback) pcap_callback;
+	module_pcap.arg = &cat_arg;
+	module_pcap.fd = pcap_get_selectable_fd(np->hndl);
+	if(register_module(&module_pcap)) {
 		return 5;
 	}
 	return 0;
 }
 
+void pcap_deinit(void) {
+	pcap_close(cat_arg.pcap_hndl);
+	module_pcap.timeout = -3; //Unregister
+}

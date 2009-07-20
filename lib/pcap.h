@@ -15,6 +15,7 @@ struct net_pcap {
 };
 
 int pcap_init(struct net_pcap *np);
+void pcap_deinit(void);
 
 #endif
 
