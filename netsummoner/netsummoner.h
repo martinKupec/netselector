@@ -80,6 +80,4 @@ struct rule_ret {
 	unsigned count;
 };
 
-
-
 #endif

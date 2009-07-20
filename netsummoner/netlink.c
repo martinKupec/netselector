@@ -60,7 +60,7 @@ static void netlink_change(bool up) {
 }
 
 static void netlink_up(struct netlink_args *arg, const int intf) {
-	if(arg->intf[intf].link_up) {
+	if(!arg->intf[intf].link_up) {
 		printf("Interface %s carrier detected\n", arg->intf[intf].ifname);
 		arg->intf[intf].link_up = 1;
 		netlink_change(1);
@@ -68,7 +68,7 @@ static void netlink_up(struct netlink_args *arg, const int intf) {
 }
 
 static void netlink_down(struct netlink_args *arg, const int intf) {
-	if(!arg->intf[intf].link_up) {
+	if(arg->intf[intf].link_up) {
 		printf("Interface %s no-carrier\n", arg->intf[intf].ifname);
 		arg->intf[intf].link_up = 0;
 		netlink_change(0);

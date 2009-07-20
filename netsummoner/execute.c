@@ -16,6 +16,7 @@ struct exec_args {
 	struct combination *comb;
 	unsigned action;
 	unsigned actual;
+	bool reversed;
 	pid_t pid;
 };
 
@@ -113,13 +114,19 @@ static void set_env(const struct rule_set *rules, unsigned count) {
 }
 
 static int exec_work(struct exec_args *arg) {
-	struct action_plan *plan = arg->plan->actions + arg->actual;
+	struct action_plan *plan = arg->plan->actions;
 	char **prog;
 	int ret;
 
+	if(arg->reversed) {
+		plan += arg->plan->count - arg->actual - 1;
+	} else {
+		plan += arg->actual;
+	}
+
 	if(arg->actual >= arg->plan->count) {
 		printf("Execute done\n");
-		if(arg->plan == arg->comb->up) {
+		if(arg->action == EXEC_MATCH) {
 			arg->comb->active = true;
 		} else {
 			arg->comb->active = false;
@@ -138,6 +145,11 @@ static int exec_work(struct exec_args *arg) {
 		setenv("NETWORK", arg->net->name, 1);
 		setenv("PLAN", exec_arg.plan->name, 1);
 		set_env(arg->net->rules, arg->net->count);
+		if(arg->action == EXEC_MATCH) {
+			setenv("ACTION", "UP", 1);
+		} else {
+			setenv("ACTION", "DOWN", 1);
+		}
 
 		signal(SIGCHLD, signal_child);
 
@@ -165,19 +177,18 @@ static int exec_work(struct exec_args *arg) {
 		break;
 	case WPA:
 		printf("WPA\n");
-
-		module_exec.fd = wpa_init(((const char **)(plan->data))[0]);
-		if(module_exec.fd < 0) {
-			fprintf(stderr, "WPA init error\n");
-			return 1;
-		}
 		if(arg->action == EXEC_MATCH) {
+			module_exec.fd = wpa_init(((const char **)(plan->data))[0]);
+			if(module_exec.fd < 0) {
+				fprintf(stderr, "WPA init error\n");
+				return 1;
+			}
 			if((ret = wpa_connect(((const char **)(plan->data))[1], arg->net))) {
 				printf("WPA Connect returned %d\n", ret);
 				return 1;
 			}
 		} else {
-			wpa_disconnect();
+			module_exec.fd = wpa_disconnect();
 		}
 		break;
 	default:
@@ -189,9 +200,15 @@ static int exec_work(struct exec_args *arg) {
 }
 
 static int exec_wait(struct exec_args *arg) {
-	struct action_plan *plan = arg->plan->actions + arg->actual;
+	struct action_plan *plan = arg->plan->actions;
 	int status;
 	pid_t pid;
+
+	if(arg->reversed) {
+		plan += arg->plan->count - arg->actual - 1;
+	} else {
+		plan += arg->actual;
+	}
 
 	switch(plan->type) {
 	case EXECUTE:
@@ -220,7 +237,8 @@ static int exec_wait(struct exec_args *arg) {
 		break;
 	case WPA:
 		status = wpa_message();
-		if(!status) {
+		printf("Status %d\n", status);
+		if((status == 0) || (status == 4)) {
 			arg->actual++;
 		} else {
 			return 0;
@@ -291,12 +309,14 @@ int execute(struct network *net, unsigned action) {
 		comb = choose_combination(anode);
 		printf("Combination %s\n", comb->condition == LINK ? "ethernet up" : "fallback");
 		exec_arg.plan = comb->up;
-		setenv("ACTION", "UP", 1);
+		exec_arg.reversed = false;
 		break;
 	case EXEC_DOWN:
 		comb = select_active_combination(anode);
+		printf("Exec down\n");
 		exec_arg.plan = comb->down;
-		setenv("ACTION", "DOWN", 1);
+		exec_arg.reversed = comb->down_reversed;
+		break;
 	default:
 		return 1;
 		break;

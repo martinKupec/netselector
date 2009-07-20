@@ -168,9 +168,10 @@ asmstmt: /* empty */ { $$.comb = malloc(sizeof(struct combination) * counter); $
 		$2.condition = $1; $2.condition_args = NULL; combcpy($$.comb + counter, &$2); counter--; }
 	;
 
-asmupdown: asmup asmdown { $$.up = $1; $$.down = $2.action; $$.down_reversed = $2.rev; }
-	| asmdown asmup { $$.up = $2; $$.down = $1.action; $$.down_reversed = $1.rev; }
+asmupdown: asmup asmdown { $$.up = $1; $$.down = $2.action; $$.down_reversed = $2.rev; $$.active = false; }
+	| asmdown asmup { $$.up = $2; $$.down = $1.action; $$.down_reversed = $1.rev; $$.active = false; }
 	;
+
 asmup: UP VAL_STR { $$ = find_action($2); }
 	;
 

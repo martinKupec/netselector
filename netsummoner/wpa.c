@@ -29,6 +29,7 @@ static int wpa_callback(struct network *net) {
 
 	ret = wpa_message();
 	if(ret == 4) { //Disconnected
+		printf("WPA DISCONNECT - EXEC DOWN\n");
 		execute(net, EXEC_DOWN);
 		return 1;
 	}
@@ -100,10 +101,11 @@ int wpa_disconnect(void) {
 		msg[len - 1] = '\0';
 		if(strcmp("OK", msg)) {
 			printf("request DISCONNECT returned %d and %s\n", len, msg);
-			return 1;
+			return -2;
 		}
+		module_wpa.timeout = -3; //Unregister
 	}
-	return 0;
+	return module_wpa.fd;
 }
 
 int wpa_message(void) {
@@ -134,7 +136,8 @@ int wpa_message(void) {
 			return 0;
 		}
 	}
-	if(strstr(msg, WPA_EVENT_DISCONNECTED)) {
+	if(strstr(msg, WPA_EVENT_DISCONNECTED) ||
+			strstr(msg, "Associated with 00:00:00:00:00:00")) {
 		if(wpa_connected) {
 			printf("DISCONNECTED\n");
 			wpa_connected = false;

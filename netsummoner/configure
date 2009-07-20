@@ -61,10 +61,9 @@ network "generic-dhcp" 1 {
 }
 
 action "home-wifi" {
-	execute "/home/magon/scripts/tutu.sh" "1"
+	execute "../scripts/wpa.sh" "wlan0"
 	use wpa "wlan0" "magon-home"
-	execute "/home/magon/scripts/tutu.sh" "2"
-	execute "/home/magon/scripts/tutu.sh" "3"
+	execute "../scripts/dhcp.sh" "wlan0"
 }
 
 action "home-wire" {
