@@ -1,0 +1,101 @@
+.TH netsummoner-config 5 2009-07-20 GNU "File Formats and Conventions"
+.SH NAME
+configure \- Configuration file for
+.BR netsummoner (1).
+.SH SYNOPSIS
+configure is file for setting network indicies for netsummoner from netselector suite.
+.SH FILE FORMAT
+The file consist of sections describing networks and execution scripts. Section begins with section name and parameters.
+Each section is enclosed in curly brackets and the file is line-based. All strings parameters have to be enclosed in double-quotes.
+.SH NETWORK SECTION
+.SS Parameters
+Network section has two mandatory parameters, network name and target score.
+.IP "network name"
+Network's uniq identifier.
+.IP "target score"
+After reaching this value network is considered matched, and configuration script are executed.
+.SS Statements
+After all statements there have to be number at the end of line. The number is amount of score added to network's score upon matching.
+.IP "gateway [mac <mac>] [ip <ip>]"
+.PD 0
+.IP "dns     [mac <mac>] [ip <ip>]"
+.IP "dhcps   [mac <mac>] [ip <ip>]"
+.PD
+This statements generally matches given ip AND mac. Only one parameter can be provided.
+.IP "stp root <mac>"
+Matches STP protocol's root element's mac address.
+.IP "nbns name <string>"
+Matches when any computer on network ask's for given netbios name.
+.IP "eap mac <mac>"
+Matches when <mac> ask's using EAP protocol.
+.IP "wlccp mac <mac>"
+Matches when broadcast WLCCP's anonuncement is received.
+.IP "cdp id <string>"
+Matches when broadcast CDP's anonuncement is received with given ID parameter.
+.IP "wifi [essid <essid>] [mac <mac>]"
+Matches essid AND mac, if both provided, of scanned wifi access points.
+.SH ACTION SECTION
+.SS Parameters
+Action section has only one mandatory parameter, it's name.
+.IP "action name"
+Action's unique identifier.
+.SS Statements
+When action is executed it's statements are executed in given order.
+.IP "execute <path> ARGUMENTS"
+Execute executable file <path>, giving ARGUMENTS parameters as its arguments.
+Enviroment variables describing matched statements and network are passed to executable.
+.IP "use wpa <interface> <wpa network>"
+Connects to WPA <interface> socket, and select's <wpa network> as current network.
+Executing of this statement ends upon receiving "CONNECTED" message from WPA.
+In case of brinking network down, it sends request for disconnection and exits.
+.SH ASSEMBLY SECTION
+.SS Parameters
+Assembly section has only one mandatory parameter, it's name.
+.IP "assembly name"
+Assembly's unique identifier.
+.SS Statements
+.IP "network <name>"
+Network, the assembly is binded to.
+.IP "link <interface> up <action up> down [rev] <action down>"
+Then link beat is detected on <interface> and assembly's network is matched, this statement is used.
+Upon match action <action up> is executed, when brinking network down <action down> is executed. If
+"rev" is specified, <action down> is executed in reversed order.
+.IP "fallback up <action up> down [rev] <action down>"
+Currently the other option to link, matched when all others doesn't meet it's criteria. Meaning of parameters is the same as
+in
+.B link
+statement.
+.SH EXAMPLE
+ network "example" 100 {
+     gateway mac 00:14:85:28:38:69 100
+     gateway ip 10.142.1.1 50
+     wifi essid "example" 100
+     wifi mac 00:4F:62:23:8F:3C 100
+
+     dns ip 10.142.1.1 50
+     dhcps mac 00:14:85:28:38:69 100
+ }
+
+ action "example-wifi" {
+     execute "scripts/wpa.sh" "wlan0"
+     use wpa "wlan0" "example"
+     execute "scripts/dhcp.sh" "wlan0"
+ }
+
+ action "example-eth-up" {
+     execute "scripts/network_up.sh"
+     execute "scripts/dhcp.sh" "eth0"
+ }
+
+ action "example-eth-down" {
+     execute "scripts/dhcp.sh" "eth0"
+     execute "scripts/network_down.sh"
+ }
+
+ assembly "example" {
+     network "example"
+     link "eth0" up "example-eth-up" down "example-eth-down"
+     fallback up "example-wifi" down rev "example-wifi"
+ }
+.SH SEE ALSO
+.BR netscout "(1), " netsummoner (1)
