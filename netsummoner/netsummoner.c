@@ -124,12 +124,13 @@ static int netsummoner_callback(void *arg UNUSED) {
 }
 
 static void usage(void) {
-	fprintf(stderr, "Usage: netscout -[i|f] [-w]\n\
+	fprintf(stderr, "Usage: netsummoner OPTIONS\n\
 -w <interface>	Enable WiFi scanning on <interface>\n\
 -f <file>	Use dump file instead of live\n\
 -i <interface>	Ethernet listening on <interface>\n\
 -d  Send DHCP Offers\n\
 -p  Promiscuous mode\n\
+-v  Be verbose\n\
 -h  Show this help\
 \n");
 }

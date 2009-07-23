@@ -125,6 +125,9 @@ cdp: ID VAL_STR { struct rule r = { .type = $1, .data = $2 }; make_rule_ret(&$$,
 	;
 
 dns: ip { make_rule_ret(&$$, 1, &$1); }
+	|  mac { make_rule_ret(&$$, 1, &$1); }
+	|  ip mac { make_rule_ret(&$$, 2, &$1, &$2); }
+	|  mac ip { make_rule_ret(&$$, 2, &$1, &$2); }
 	;
 
 mac: MAC VAL_MAC { $$.type = $1; $$.data = $2; }
