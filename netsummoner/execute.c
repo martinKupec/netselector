@@ -24,7 +24,7 @@ struct exec_args exec_arg;
 struct module_info module_exec;
 
 static void signal_child(int sig UNUSED) {
-	printf("Child died\n");
+	//printf("Child died\n");
 }
 
 static void set_env(const struct rule_set *rules, unsigned count) {
@@ -125,13 +125,19 @@ static int exec_work(struct exec_args *arg) {
 	}
 
 	if(arg->actual >= arg->plan->count) {
-		printf("Execute done\n");
+		arg->plan = NULL;
 		if(arg->action == EXEC_MATCH) {
 			arg->comb->active = true;
+			printf("Execute done - network UP\n");
 		} else {
 			arg->comb->active = false;
+			if(arg->action == EXEC_RESTART) {
+				printf("Execute midway - network restarting\n");
+				return execute(arg->net, EXEC_MATCH);
+			} else {
+			printf("Execute done - network DOWN\n");
+			}
 		}
-		arg->plan = NULL;
 		return 11;
 	}
 
@@ -240,7 +246,7 @@ static int exec_wait(struct exec_args *arg) {
 	case WPA:
 		status = wpa_message();
 		if(((arg->action == EXEC_MATCH) && (status == 0)) ||
-				((arg->action == EXEC_DOWN) && (status == 4))) {
+				((arg->action != EXEC_MATCH) && (status == 4))) {
 			arg->actual++;
 		} else {
 			return 0;
@@ -313,6 +319,7 @@ int execute(struct network *net, unsigned action) {
 		exec_arg.plan = comb->up;
 		exec_arg.reversed = false;
 		break;
+	case EXEC_RESTART:
 	case EXEC_DOWN:
 		comb = select_active_combination(anode);
 		exec_arg.plan = comb->down;

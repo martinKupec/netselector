@@ -9,6 +9,7 @@
 #include <linux/if.h>
 
 #include "netlink.h"
+#include "execute.h"
 #include "netsummoner.h"
 #include "configuration.tab.h"
 
@@ -39,15 +40,13 @@ static void netlink_change(bool up) {
 			if(anode->comb[i].active) {
 				if(!up && anode->comb[i].condition == LINK) {
 					if(!netlink_is_up(anode->comb[i].condition_args)) {
-						printf("RESETING CONNECTION\n");
-						//reset
+						execute(anode->net, EXEC_RESTART);
 					}
 				} else if(up && anode->comb[i].condition != LINK) {
 					for(i = 0; i < anode->count; i++) {
 						if(anode->comb[i].condition == LINK) {
 							if(netlink_is_up(anode->comb[i].condition_args)) {
-								printf("RESETING CONNECTION\n");
-								//reset
+								execute(anode->net, EXEC_RESTART);
 							}
 							break;
 						}

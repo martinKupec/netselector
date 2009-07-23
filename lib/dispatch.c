@@ -60,7 +60,7 @@ static void unregister_modules(void) {
 
 	for(i = 0; i < mod_reg_size; i++) {
 		if(mod_reg[i].mod->timeout == -3) {
-			fprintf(stderr, "Unregistering module %s\n", mod_reg[i].ident);
+			//fprintf(stderr, "Unregistering module %s\n", mod_reg[i].ident);
 			memcpy(mod_reg + i, mod_reg + mod_reg_size - 1, sizeof(struct module_register));
 			mod_reg_size--;
 			i--;
@@ -82,7 +82,6 @@ static void call_module(const size_t i) {
 	module = mod_reg + i; //needed because of reallocing of mod_reg
 
 	if(ret) {
-		printf("Unregisted by ret\n");
 		module->mod->timeout = -3; //Unregister
 	} else {
 		module->timeout_left = module->mod->timeout;

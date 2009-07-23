@@ -6,6 +6,7 @@
 enum {
 	EXEC_MATCH,
 	EXEC_DOWN,
+	EXEC_RESTART,
 };
 
 int execute_running(void);
