@@ -1,0 +1,27 @@
+	NetSelector Suite
+
+1. Introduction
+
+This tool is designed for convinient configuring network interfaces on laptops and other mobile computers.
+Netscout tries to find unique identification of network and than netsummoner uses this indicies and selects right
+configuration.
+
+
+2. Use
+
+First you have to launch netscout and observe what it discovers. Than you have to write garthered informations
+to netsummoners configuration file. In addition to network identification informations, network configure information
+have to be added to configuration file. This can be done for each location your device is occuring on.
+
+Netsummoner than can be launched upon each start of system from system startup scripts. Netsummoner reads this configuration file
+and sniffs on network interfaces. When it matches one of the configured networks, it executes scripts for setting network interfaces.
+
+Netsummoner is also able to detect inserting and ejecting of ethernet cabel, thus dynamicaly switch between WiFi and Ethernet connection.
+
+3. Installation
+
+Sources are available at git repository and can be obtained by executing:
+	git clone git://exile.dobaledova.net/var/git/magon/netselector.git
+
+There is no configure script, just Makefile. Compilling can be done by make command.
+When compiled, netscout and netsummoner both can be used from obj folder or copied to user's or system's bin folder.

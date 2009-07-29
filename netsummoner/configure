@@ -32,6 +32,9 @@ assembly "leskovec" {
 network "home" 100 {
 	wifi mac 00:0E:2E:64:66:58 50
 	wifi essid "magon-home" 50
+	stp root 80:00:00:0E:2E:64:66:58 100
+	dhcps mac 00:15:6d:bc:d5:de 100
+	cdp id "Kupec" 100
 }
 
 action "home-wifi" {

@@ -111,7 +111,7 @@ unsigned show_cdp(const struct info_field *info, bool oneline) {
 	return 0;
 }
 
-static unsigned on_eth(const uint8_t *mac, unsigned space) {
+static unsigned on_mac(const uint8_t *mac, unsigned space) {
 
 	if(!show_received) {
 		return 0;
@@ -120,7 +120,7 @@ static unsigned on_eth(const uint8_t *mac, unsigned space) {
 		space++;
 		putchar(' ');
 	}
-	return cond_printf("on ETH %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2],
+	return cond_printf("on MAC %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2],
 			mac[3], mac[4], mac[5]);
 }
 
@@ -176,36 +176,37 @@ static unsigned info_data_score(const void *node, const struct info_field *info)
 	unsigned space = 0;
 	const struct stat_ether *neth = (struct stat_ether *)(node);
 	const struct stat_ip *nip = (struct stat_ip *)(node);
+	const struct stat_wifi *nwi = (struct stat_wifi *)(node);
 
 	switch(info->type) {
 	case ETH_TYPE_IP:
 		space = cond_printf("IP %d.%d.%d.%d", IPQUAD(((const struct stat_ip *)info->data)->ip));
-		space = on_eth(neth->mac, space);
+		space = on_mac(neth->mac, space);
 		space = is_router(neth->info, info - neth->info, neth->count, space);
 		cond_printf("\n");
 		return space; // IP Added when adding to list, adding just score for gateway
 	case ETH_TYPE_CDP:
 		space = show_cdp(info, 1);
-		space = on_eth(neth->mac, space);
+		space = on_mac(neth->mac, space);
 		verdict(space, "Router\n");
 		return SCORE_CDP;
 	case ETH_TYPE_STP:
 		space = show_stp(info, 1);
-		space = on_eth(neth->mac, space);
+		space = on_mac(neth->mac, space);
 		verdict(space, "Router\n");
 		return SCORE_STP;
 	case IP_TYPE_NBNS:
 		return SCORE_NBNS;
 	case IP_TYPE_DHCPS:
 		space = show_dhcps(info, 1);
-		space = on_eth(nip->ether->mac, space);
+		space = on_mac(nip->ether->mac, space);
 		verdict(space, "DHCP Server\n");
 		return SCORE_DHCPS;
 	case IP_TYPE_ARP:
 		return SCORE_ARP;
 	case IP_TYPE_DNSS:
 		space = cond_printf("DNS %d.%d.%d.%d", IPQUAD(nip->ip));
-		space = on_eth(nip->ether->mac, space);
+		space = on_mac(nip->ether->mac, space);
 		verdict(space, "DNS Server\n");
 		return SCORE_DNSS;
 	case IP_TYPE_DNSC:
@@ -220,12 +221,12 @@ static unsigned info_data_score(const void *node, const struct info_field *info)
 		return SCORE_UNKNOWN;
 	case ETH_TYPE_WLCCP:
 		space = cond_printf("WLCCP");
-		space = on_eth(neth->mac, space);
+		space = on_mac(neth->mac, space);
 		verdict(space, "Cisco Router\n");
 		return SCORE_WLCCP;
 	case ETH_TYPE_EAP:
 		space = cond_printf("EAP");
-		space = on_eth(neth->mac, space);
+		space = on_mac(neth->mac, space);
 		verdict(space, "EAP Server\n");
 		return SCORE_EAP;
 	case ETH_TYPE_REVARP:
@@ -242,6 +243,11 @@ static unsigned info_data_score(const void *node, const struct info_field *info)
 		return SCORE_SSDP;
 	case IP_TYPE_DHCPC:
 		return SCORE_DHCPC;
+	case WIFI_TYPE_QUALITY:
+		space = cond_printf("Wifi ESSID %s quality %d", nwi->essid, (uint32_t)(info->data));
+		space = on_mac(nwi->mac, space);
+		verdict(space, "Wifi Access Point\n");
+		return SCORE_WIFI;
 	default:
 		return 0;
 	}

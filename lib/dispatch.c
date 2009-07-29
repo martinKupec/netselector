@@ -119,6 +119,9 @@ int dispatch_loop(void) {
 					fd_max = mod_reg[i].mod->fd;
 				}
 			}
+			if(mod_reg[i].timeout_left <= 0) {
+				mod_reg[i].timeout_left = mod_reg[i].mod->timeout;
+			}
 			if(mod_reg[i].timeout_left > 0) { //Valid timeout ?
 				if(mod_reg[i].timeout_left < wait_min) {
 					wait_min = mod_reg[i].timeout_left;

@@ -32,6 +32,7 @@ enum {
 	SCORE_STP_UNKNOWN = 5,
 	SCORE_ETHER = 5,
 	SCORE_IP = 10,
+	SCORE_WIFI = 50,
 };
 
 #endif

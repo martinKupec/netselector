@@ -22,7 +22,7 @@ bool show_received;
 struct list list_network, list_action, list_assembly;
 
 static struct arbiter_queue aqueue;
-static bool connection;
+static bool connection, exit_on_connection;
 
 static struct stat_ether ether_node_from, ether_node_to;
 static struct stat_ip ip_node_from, ip_node_to;
@@ -79,6 +79,9 @@ static void netsummoner_score(const unsigned score UNUSED) {
 		switch(execute(net, EXEC_MATCH)) {
 		case 0: //Execute went well
 			connection = true;
+			if(exit_on_connection) {
+				module_netsummoner.timeout = 1;
+			}
 			break;
 		case 1: //Exec with error
 		case 3: //No assembly
@@ -113,10 +116,12 @@ static int netsummoner_callback(void *arg UNUSED) {
 	wifi_deinit();
 	pcap_deinit();
 	netlink_deinit();
-	LIST_WALK(anode, &list_assembly) {
-		for(i = 0; i < anode->count; i++) {
-			if(anode->comb[i].active) {
-				execute(anode->net, EXEC_DOWN);
+	if(!exit_on_connection) {
+		LIST_WALK(anode, &list_assembly) {
+			for(i = 0; i < anode->count; i++) {
+				if(anode->comb[i].active) {
+					execute(anode->net, EXEC_DOWN);
+				}
 			}
 		}
 	}
@@ -131,6 +136,7 @@ static void usage(void) {
 -d  Send DHCP Offers\n\
 -p  Promiscuous mode\n\
 -v  Be verbose\n\
+-c  Connect and exit\n\
 -h  Show this help\
 \n");
 }
@@ -142,7 +148,7 @@ int main(int argc, char **argv) {
 	bool dhcp_active = 0;
 	const char *interfaces[3] = {};
 	
-	while ((opt = getopt(argc, argv, "hvpw:f:i:d")) >= 0) {
+	while ((opt = getopt(argc, argv, "hvpw:f:i:dc")) >= 0) {
 		switch(opt) {
 		case 'w':
 			wifidev = optarg;
@@ -163,6 +169,9 @@ int main(int argc, char **argv) {
 			break;
 		case 'v':
 			show_received = 1;
+			break;
+		case 'c':
+			exit_on_connection = 1;
 			break;
 		case 'h':
 		default:
