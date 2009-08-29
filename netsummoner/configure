@@ -57,7 +57,9 @@ assembly "home" {
 	link "eth0" up "home-wire" down rev "home-wire"
 	fallback up "home-wifi" down "home-wifi-down"
 }
+#Home End
 
+#Work Start
 network "work" 100 {
 	wifi essid "K2" mac 00:0E:8E:B8:24:ED 100
 }
@@ -71,4 +73,35 @@ action "work-wifi" {
 assembly "work" {
 	network "work"
 	fallback up "work-wifi" down rev "work-wifi"
+}
+#Work End
+
+#School Start
+
+network "school" 100 {
+	wifi essid "eduroam" 100
+	stp root 81:8D:00:0A:B7:D7:DB:40 100
+	stp root 80:00:00:0A:B7:93:B8:5A 100
+	wlccp mac 00:19:2F:7E:50:92 100
+	wlccp mac 00:19:2F:7E:50:16 100
+	wlccp mac 00:19:2F:7E:4F:88 100
+	wlccp mac 00:15:63:66:E5:98 100
+	wlccp mac 00:15:63:66:E5:47 100
+	wlccp mac 00:19:2F:7E:50:8A 100
+	dhcps mac 00:13:D4:B4:E5:78 100
+}
+
+action "school-wifi" {
+	execute "../scripts/wpa.sh" "wlan0"
+	use wpa "wlan0" "eduroam"
+	execute "../scripts/dhcp.sh" "wlan0"
+}
+action "school-wire" {
+	execute "../scripts/dhcp.sh" "eth0"
+}
+
+assembly "school" {
+	network "school"
+	link "eth0" up "school-wire" down rev "school-wire"
+	fallback up "school-wifi" down rev "school-wifi"
 }

@@ -128,9 +128,11 @@ int dispatch_loop(void) {
 				}
 			}
 		}
-		timeout.tv_sec = 0;
-		timeout.tv_nsec = wait_min * 1000L * 1000;
+		timeout.tv_sec = wait_min / 1000;
+		wait_min -= timeout.tv_sec * 1000;
+		timeout.tv_nsec = wait_min * 1000L * 1000L;
 		gettimeofday(&time_start, NULL); //FIXME global flag and pselect
+		//printf("Wait %ld seconds %ld nano ", timeout.tv_sec, timeout.tv_nsec);
 		retval = pselect(fd_max + 1, &fd_read, NULL, NULL, &timeout, &sigmask);
 		gettimeofday(&time_end, NULL);
 		wait_min = (time_end.tv_sec - time_start.tv_sec) * 1000;
@@ -139,6 +141,7 @@ int dispatch_loop(void) {
 		} else {
 			wait_min += (time_end.tv_usec - time_start.tv_usec) / 1000;
 		}
+		//printf("- waited %d mili - fd %d\n", wait_min, retval);
 		if(retval < 0) { //probably interrupted by signal
 			if(errno == EINTR) { //interrupted by signal
 				if(signal_stop) { //interrupted by user

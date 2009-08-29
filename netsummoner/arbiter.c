@@ -4,11 +4,12 @@
 #include "lib/netselector.h"
 
 struct network *arbiter(const struct arbiter_queue *queue) {
-	struct network *nnode;
+	struct network *nnode, *nnode_won = NULL;
+	unsigned score_won = 0;
 
 	LIST_WALK(nnode, &list_network) {
 		unsigned i;
-		unsigned score = 0, new_score = 0;
+		unsigned score = 0;
 
 		for(i = 0; i < nnode->count; i++) {
 			struct rule_set *rule = nnode->rules + i;
@@ -137,17 +138,16 @@ struct network *arbiter(const struct arbiter_queue *queue) {
 				}
 				if(!unmatched) {
 					rule->matched = true;
-					new_score += rule->score;
+					score += rule->score;
 				}
 			}
 		}
-		if((score + new_score) >= nnode->target_score) {
-			if(new_score) {
-				printf("Network %s won!\n", nnode->name);
+		if(score >= nnode->target_score) {
+			if(score > score_won) {
+				nnode_won = nnode;
+				score_won = score;
 			}
-			return nnode;
 		}
 	}
-	return NULL;
+	return nnode_won;
 }
-

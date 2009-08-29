@@ -14,10 +14,14 @@
 #include "lib/link.h"
 #include "netlink.h"
 
+#define NETSUM_EXIT	((void *)(0))
+#define NETSUM_DELAYED	((void *)(1))
+
 int yyparse(void);
 extern FILE *yyin;
 
 bool show_received;
+unsigned int wait_seconds = 0;
 
 struct list list_network, list_action, list_assembly;
 
@@ -75,7 +79,8 @@ static void netsummoner_score(const unsigned score UNUSED) {
 	struct network *net;
 
 	net = arbiter(&aqueue);
-	if(net && !connection) {
+	if(net && !connection && !wait_seconds) {
+		printf("Network %s won!\n", net->name);
 		switch(execute(net, EXEC_MATCH)) {
 		case 0: //Execute went well
 			connection = true;
@@ -108,24 +113,32 @@ static void netsummoner_signal(void) {
 	module_netsummoner.timeout = -1; //Wait for signal
 }
 
-static int netsummoner_callback(void *arg UNUSED) {
+static int netsummoner_callback(void *arg) {
 	unsigned i;
 	struct assembly *anode;
 
-	dhcpc_deinit();
-	wifi_deinit();
-	pcap_deinit();
-	netlink_deinit();
-	if(!exit_on_connection) {
-		LIST_WALK(anode, &list_assembly) {
-			for(i = 0; i < anode->count; i++) {
-				if(anode->comb[i].active) {
-					execute(anode->net, EXEC_DOWN);
+	if(arg == NETSUM_DELAYED) {
+		wait_seconds = 0;
+		netsummoner_score(0);
+		module_netsummoner.arg = NETSUM_EXIT;
+		module_netsummoner.timeout = -2; //Disabled
+		return 0;
+	} else {
+		dhcpc_deinit();
+		wifi_deinit();
+		pcap_deinit();
+		netlink_deinit();
+		if(!exit_on_connection) {
+			LIST_WALK(anode, &list_assembly) {
+				for(i = 0; i < anode->count; i++) {
+					if(anode->comb[i].active) {
+						execute(anode->net, EXEC_DOWN);
+					}
 				}
 			}
 		}
-	}
-	return 1; //Unregister
+		return 1; //Unregister
+	} 
 }
 
 static void usage(void) {
@@ -137,6 +150,7 @@ static void usage(void) {
 -p  Promiscuous mode\n\
 -v  Be verbose\n\
 -c  Connect and exit\n\
+-e <seconds> Wait <seconds> before choosing network\n\
 -h  Show this help\
 \n");
 }
@@ -148,7 +162,7 @@ int main(int argc, char **argv) {
 	bool dhcp_active = 0;
 	const char *interfaces[3] = {};
 	
-	while ((opt = getopt(argc, argv, "hvpw:f:i:dc")) >= 0) {
+	while ((opt = getopt(argc, argv, "hvpw:f:i:dce:")) >= 0) {
 		switch(opt) {
 		case 'w':
 			wifidev = optarg;
@@ -172,6 +186,9 @@ int main(int argc, char **argv) {
 			break;
 		case 'c':
 			exit_on_connection = 1;
+			break;
+		case 'e':
+			wait_seconds = atoi(optarg);
 			break;
 		case 'h':
 		default:
@@ -254,10 +271,15 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	if(wait_seconds) {
+		module_netsummoner.arg = NETSUM_DELAYED;
+		module_netsummoner.timeout = wait_seconds * 1000;
+	} else {
+		module_netsummoner.arg = NETSUM_EXIT;
+		module_netsummoner.timeout = -2; //Disabled
+	}
 	module_netsummoner.fnc = (dispatch_callback) netsummoner_callback;
-	module_netsummoner.arg = NULL;
 	module_netsummoner.fd = -1;  //Not used
-	module_netsummoner.timeout = -2; //Disabled
 	signal_callback = netsummoner_signal;
 
 	if(register_module(&module_netsummoner, "Netsummoner")) {
