@@ -3,7 +3,7 @@
 
 int wpa_init(const char *iface);
 int wpa_message(void);
-int wpa_connect(const char *ssid, struct network *net);
+int wpa_connect(const char *ssid, struct network *net, bool close);
 int wpa_disconnect(void);
 void wpa_close(void);
 

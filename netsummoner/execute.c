@@ -17,6 +17,7 @@ struct exec_args {
 	unsigned action;
 	unsigned actual;
 	bool reversed;
+	bool exit_on_connect;
 	pid_t pid;
 };
 
@@ -187,7 +188,7 @@ static int exec_work(struct exec_args *arg) {
 				fprintf(stderr, "WPA init error\n");
 				return 1;
 			}
-			if((ret = wpa_connect(((const char **)(plan->data))[1], arg->net))) {
+			if((ret = wpa_connect(((const char **)(plan->data))[1], arg->net, arg->exit_on_connect))) {
 				printf("WPA Connect returned %d\n", ret);
 				return 1;
 			}
@@ -290,6 +291,10 @@ static struct combination *select_active_combination(struct assembly *ass) {
 
 int execute_running(void) {
 	return !!exec_arg.plan;
+}
+
+void execute_close_on_connect(bool close) {
+	exec_arg.exit_on_connect = close;
 }
 
 int execute(struct network *net, unsigned action) {

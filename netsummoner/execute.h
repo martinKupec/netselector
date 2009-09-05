@@ -10,6 +10,7 @@ enum {
 };
 
 int execute_running(void);
+void execute_close_on_connect(bool close);
 int execute(struct network *net, unsigned action);
 
 #endif

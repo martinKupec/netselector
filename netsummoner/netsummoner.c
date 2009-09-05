@@ -5,6 +5,7 @@
 #include "netsummoner.h"
 #include "arbiter.h"
 #include "execute.h"
+#include "wpa.h"
 #include "lib/netselector.h"
 #include "lib/pcap.h"
 #include "lib/score.h"
@@ -119,9 +120,9 @@ static int netsummoner_callback(void *arg) {
 
 	if(arg == NETSUM_DELAYED) {
 		wait_seconds = 0;
-		netsummoner_score(0);
 		module_netsummoner.arg = NETSUM_EXIT;
 		module_netsummoner.timeout = -2; //Disabled
+		netsummoner_score(0);
 		return 0;
 	} else {
 		dhcpc_deinit();
@@ -287,6 +288,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	execute_close_on_connect(exit_on_connection);
 	daemonize();
 	(void) dispatch_loop();
 	printf("Main loop ended\n");
