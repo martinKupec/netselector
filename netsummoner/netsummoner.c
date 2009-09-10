@@ -27,7 +27,7 @@ unsigned int wait_seconds = 0;
 struct list list_network, list_action, list_assembly;
 
 static struct arbiter_queue aqueue;
-static bool connection, exit_on_connection;
+static bool connection, exit_on_connection, abort_on_timeout;
 
 static struct stat_ether ether_node_from, ether_node_to;
 static struct stat_ip ip_node_from, ip_node_to;
@@ -101,7 +101,8 @@ static void netsummoner_score(const unsigned score UNUSED) {
 		default:
 			break;
 		}
-	}
+	} else if(!wait_seconds && !connection && abort_on_timeout)
+		module_netsummoner.timeout = 1;
 	bzero(&aqueue, sizeof(struct arbiter_queue)); //FIXME TRY TO DO PROPER CLEAN UP
 	bzero(&ether_node_from, sizeof(struct stat_ether));
 	bzero(&ether_node_to, sizeof(struct stat_ether));
@@ -152,6 +153,7 @@ static void usage(void) {
 -v  Be verbose\n\
 -c  Connect and exit\n\
 -e <seconds> Wait <seconds> before choosing network\n\
+-a  Abort when there is no connection after -e seconds\n\
 -h  Show this help\
 \n");
 }
@@ -163,7 +165,7 @@ int main(int argc, char **argv) {
 	bool dhcp_active = 0;
 	const char *interfaces[3] = {};
 	
-	while ((opt = getopt(argc, argv, "hvpw:f:i:dce:")) >= 0) {
+	while ((opt = getopt(argc, argv, "hvpw:f:i:dce:a")) >= 0) {
 		switch(opt) {
 		case 'w':
 			wifidev = optarg;
@@ -190,6 +192,9 @@ int main(int argc, char **argv) {
 			break;
 		case 'e':
 			wait_seconds = atoi(optarg);
+			break;
+		case 'a':
+			abort_on_timeout = 1;
 			break;
 		case 'h':
 		default:
