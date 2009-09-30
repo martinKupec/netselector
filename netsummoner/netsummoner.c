@@ -35,6 +35,8 @@ static struct stat_wifi wifi_node;
 
 static struct module_info module_netsummoner;
 
+static int exit_code = 0;
+
 //static struct stat_ether *list_ether_add(const uint8_t *mac) {
 struct stat_ether *get_node_ether(const uint8_t *mac) {
 	if(!aqueue.enode_f) {
@@ -101,8 +103,10 @@ static void netsummoner_score(const unsigned score UNUSED) {
 		default:
 			break;
 		}
-	} else if(!wait_seconds && !connection && abort_on_timeout)
+	} else if(!wait_seconds && !connection && abort_on_timeout) {
 		module_netsummoner.timeout = 1;
+		exit_code = 2;
+	}
 	bzero(&aqueue, sizeof(struct arbiter_queue)); //FIXME TRY TO DO PROPER CLEAN UP
 	bzero(&ether_node_from, sizeof(struct stat_ether));
 	bzero(&ether_node_to, sizeof(struct stat_ether));
@@ -297,6 +301,6 @@ int main(int argc, char **argv) {
 	daemonize();
 	(void) dispatch_loop();
 	printf("Main loop ended\n");
-	return 0;
+	return exit_code;
 }
 

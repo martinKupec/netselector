@@ -105,3 +105,25 @@ assembly "school" {
 	link "eth0" up "school-wire" down rev "school-wire"
 	fallback up "school-wifi" down rev "school-wifi"
 }
+
+#School end
+
+#Dorms start
+
+network "dorms" 100 {
+	eap mac 00:1A:6C:F9:95:A3 100
+	gateway mac 00:1A:6C:F9:95:A3 100
+}
+
+action "dorms" {
+	execute "../scripts/wpa-wire.sh" "eth0"
+	use wpa "eth0" ""
+	execute "../scripts/dhcp.sh" "eth0"
+}
+
+assembly "dorms" {
+	network "dorms"
+	link "eth0" up "dorms" down rev "dorms"
+}
+
+#Dorms end
