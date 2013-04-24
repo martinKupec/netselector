@@ -21,7 +21,7 @@ Netsummoner is also able to detect inserting and ejecting of ethernet cabel, thu
 3. Installation
 
 Sources are available at git repository and can be obtained by executing:
-	git clone git://exile.dobaledova.net/var/git/magon/netselector.git
+	git://github.com/martinKupec/netselector.git
 
 There is no configure script, just Makefile. Compilling can be done by make command.
 When compiled, netscout and netsummoner both can be used from obj folder or copied to user's or system's bin folder.
