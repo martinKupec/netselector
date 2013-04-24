@@ -4,3 +4,4 @@ implement NOT statement
 verbose netsummoner is too verbose
 switch off promiscuout mode on connecting
 still sending DHCP requests when connected - or other heavy load
+match wireless networks on signal strength, not first win
